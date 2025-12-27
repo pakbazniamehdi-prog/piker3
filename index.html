@@ -3,95 +3,78 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Piker Max Focus</title>
-    <script src="https://unpkg.com/html5-qrcode"></script>
+    <title>Piker Data Receiver</title>
     <style>
-        body { font-family: Tahoma; margin: 0; background: #f4f7f6; text-align: center; color: #2d3748; }
-        .header { background: #2d3748; color: white; padding: 25px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        .main-btn { 
-            background: #3182ce; color: white; padding: 20px 40px; 
-            border-radius: 50px; font-size: 20px; font-weight: bold; 
-            border: none; cursor: pointer; margin: 30px 0;
-            box-shadow: 0 10px 20px rgba(49, 130, 206, 0.3);
-        }
-        .card { background: white; border-radius: 15px; margin: 15px; text-align: right; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-right: 10px solid #38a169; overflow: hidden; }
-        .card-header { background: #edf2f7; padding: 12px; font-weight: bold; display: flex; justify-content: space-between; }
-        .row { padding: 12px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; }
-        .qty-label { background: #2d3748; color: white; padding: 2px 10px; border-radius: 10px; font-weight: bold; }
-        input[type="file"] { display: none; }
+        body { font-family: Tahoma; margin: 0; background: #f7fafc; text-align: center; }
+        .header { background: #2d3748; color: white; padding: 20px; }
+        .input-box { margin: 20px; padding: 20px; background: white; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        input { width: 90%; padding: 15px; border-radius: 10px; border: 2px solid #3182ce; font-size: 16px; text-align: center; }
+        .card { background: white; border-radius: 12px; margin: 15px; text-align: right; border-right: 10px solid #38a169; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .card-header { background: #edf2f7; padding: 10px; font-weight: bold; display: flex; justify-content: space-between; }
+        .row { padding: 10px; display: flex; justify-content: space-between; border-bottom: 1px solid #f1f5f9; }
+        .qty { background: #2d3748; color: white; padding: 2px 10px; border-radius: 10px; }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <h2>سیستم تجمیع فاکتور (قدرت دوربین اصلی)</h2>
-        <p id="st">برای شروع، روی دکمه زیر بزنید و عکس بگیرید</p>
+        <h2>سیستم تجمیع Piker (دریافت مستقیم)</h2>
+        <p>دیتا را در کادر زیر وارد کنید (یا از اسکنر استفاده کنید)</p>
     </div>
 
-    <label for="camera-input" class="main-btn">📸 عکس‌برداری و اسکن فاکتور</label>
-    <input type="file" id="camera-input" accept="image/*" capture="environment">
+    <div class="input-box">
+        <input type="text" id="scanner-input" placeholder="کلیک کنید و اسکن کنید..." autofocus>
+        <p style="font-size: 11px; color: #718096; margin-top: 10px;">نکته: این کادر برای استفاده از هندزفری اسکنر یا کیبورد مجازی طراحی شده است.</p>
+    </div>
 
-    <div id="result-list"></div>
+    <div id="result"></div>
 
-    <script>
-        let inventory = {};
-        let scanned = new Set();
-        const html5QrCode = new Html5Qrcode("result-list");
+<script>
+    let inventory = {};
+    let scannedHashes = new Set();
+    const input = document.getElementById('scanner-input');
 
-        document.getElementById('camera-input').addEventListener('change', async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            document.getElementById('st').innerText = "⏳ در حال تحلیل عکس با دقت بالا...";
-            
-            try {
-                const decodedText = await html5QrCode.scanFile(file, true);
-                processQR(decodedText);
-            } catch (err) {
-                alert("❌ اسکن ناموفق! مطمئن شوید عکس کاملاً واضح، عمود و با نور کافی از QR گرفته شده است.");
-                document.getElementById('st').innerText = "❌ دوباره تلاش کنید";
-            }
-        });
-
-        function processQR(text) {
-            try {
-                const data = JSON.parse(text);
-                const orderKey = data.customer.orderDate + data.customer.name;
-
-                if (scanned.has(orderKey)) {
-                    alert("این فاکتور قبلاً ثبت شده است.");
-                    return;
-                }
-
-                scanned.add(orderKey);
-                if (navigator.vibrate) navigator.vibrate(200);
-
-                const items = data.items;
-                Object.keys(items).forEach(key => {
-                    const it = items[key];
-                    if (!inventory[it.title]) inventory[it.title] = { total: 0, orders: [] };
-                    inventory[it.title].total += parseInt(it.quantity);
-                    inventory[it.title].orders.push({ name: data.customer.name, qty: it.quantity });
-                });
-
-                document.getElementById('st').innerText = "✅ فاکتور " + data.customer.name + " با موفقیت ثبت شد";
-                render();
-            } catch (e) {
-                alert("فرمت دیتای داخل QR با این برنامه سازگار نیست.");
-            }
+    // گوش دادن به ورودی (اگر اسکنر فیزیکی یا اپلیکیشن واسطه دیتا را بفرستد)
+    input.addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') {
+            processData(this.value);
+            this.value = ''; // خالی کردن برای اسکن بعدی
         }
+    });
 
-        function render() {
-            const container = document.getElementById('result-list');
-            container.innerHTML = '';
-            Object.keys(inventory).forEach(title => {
-                let html = `<div class="card"><div class="card-header"><span>📦 ${title}</span><span>مجموع: ${inventory[title].total}</span></div>`;
-                inventory[title].orders.forEach(ord => {
-                    html += `<div class="row"><span>👤 ${ord.name}</span><div><span class="qty-label">${ord.qty}</span> <input type="checkbox" style="width:22px;height:22px;margin-right:10px"></div></div>`;
-                });
-                container.innerHTML += html + `</div>`;
+    function processData(text) {
+        try {
+            const data = JSON.parse(text);
+            const id = data.customer.orderDate + data.customer.name;
+
+            if (scannedHashes.has(id)) return;
+            scannedHashes.add(id);
+
+            const items = data.items;
+            Object.keys(items).forEach(key => {
+                const it = items[key];
+                if (!inventory[it.title]) inventory[it.title] = { total: 0, details: [] };
+                inventory[it.title].total += parseInt(it.quantity);
+                inventory[it.title].details.push({ n: data.customer.name, q: it.quantity });
             });
+
+            render();
+        } catch (e) {
+            console.error("فرمت نامعتبر");
         }
-    </script>
+    }
+
+    function render() {
+        const res = document.getElementById('result');
+        res.innerHTML = '';
+        Object.keys(inventory).forEach(title => {
+            let html = `<div class="card"><div class="card-header"><span>📦 ${title}</span><span>کل: ${inventory[title].total}</span></div>`;
+            inventory[title].details.forEach(d => {
+                html += `<div class="row"><span>👤 ${d.n}</span><div><span class="qty">${d.q}</span> <input type="checkbox" style="width:20px;height:20px;margin-right:5px"></div></div>`;
+            });
+            res.innerHTML += html + `</div>`;
+        });
+    }
+</script>
 </body>
 </html>
