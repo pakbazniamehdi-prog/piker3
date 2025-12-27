@@ -2,108 +2,87 @@
 <html lang="fa" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Piker Pro Live 🚀</title>
-    <script src="https://unpkg.com/html5-qrcode"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Piker Ultra Scanner (Zxing)</title>
+    <script src="https://unpkg.com/@zxing/library@latest"></script>
     <style>
-        :root {
-            --ali: #3182ce; --saeed: #e53e3e; --ahmad: #d69e2e;
-            --bg: #f8fafc; --dark: #2d3748;
-        }
-        body { font-family: Tahoma, sans-serif; margin: 0; background: var(--bg); color: var(--dark); overflow-x: hidden; }
-        
-        /* استایل بخش اسکنر */
-        #reader { width: 100%; max-width: 600px; margin: 0 auto; background: #000; border-bottom: 4px solid #38a169; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
-        
-        .status-bar { background: #2d3748; color: white; padding: 10px; font-size: 13px; text-align: center; }
-        
-        /* لیست تجمیعی */
-        .list-container { padding: 15px; padding-bottom: 100px; }
-        .product-group { background: white; border-radius: 12px; margin-bottom: 15px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-        .group-header { background: #4a5568; color: white; padding: 12px; display: flex; justify-content: space-between; font-weight: bold; font-size: 16px; }
-        
-        .customer-row { padding: 12px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #edf2f7; border-right: 8px solid #ccc; }
-        .customer-row:last-child { border-bottom: none; }
-        
-        /* رنگ‌های اختصاصی برای تفکیک سریع */
-        .owner-ali { border-right-color: var(--ali); background: #ebf8ff; }
-        .owner-saeed { border-right-color: var(--saeed); background: #fff5f5; }
-        .owner-ahmad { border-right-color: var(--ahmad); background: #fffff0; }
-
-        .qty-badge { background: #2d3748; color: white; padding: 4px 10px; border-radius: 20px; font-weight: bold; }
-        
-        .controls { position: fixed; bottom: 0; width: 100%; background: white; padding: 15px; box-sizing: border-box; display: flex; gap: 10px; border-top: 2px solid #e2e8f0; }
-        button { flex: 1; padding: 12px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        .btn-clear { background: #e53e3e; color: white; }
-        .btn-refresh { background: #3182ce; color: white; }
-        
-        input[type="checkbox"] { width: 22px; height: 22px; cursor: pointer; }
+        body { font-family: Tahoma; margin: 0; background: #1a202c; color: white; text-align: center; }
+        #video { width: 100%; max-width: 500px; height: auto; border-bottom: 4px solid #48bb78; }
+        .result-box { background: white; color: #2d3748; padding: 15px; min-height: 50vh; border-radius: 20px 20px 0 0; margin-top: -20px; position: relative; }
+        .item { border-bottom: 1px solid #eee; padding: 10px; display: flex; justify-content: space-between; }
+        .owner-tag { font-size: 11px; padding: 2px 6px; border-radius: 4px; background: #3182ce; color: white; }
     </style>
 </head>
 <body>
 
-    <div id="reader"></div>
-    <div class="status-bar" id="status">در حال جستجوی دوربین...</div>
+    <video id="video"></video>
+    <div id="status" style="padding: 10px; font-size: 12px;">در حال لود موتور اسکنر...</div>
 
-    <div class="list-container" id="result-list">
-        </div>
-
-    <div class="controls">
-        <button class="btn-refresh" onclick="location.reload()">🔄 شروع مجدد</button>
-        <button class="btn-clear" onclick="clearData()">🗑 پاکسازی لیست</button>
+    <div class="result-box">
+        <h3 style="margin-top:0">لیست کالاهای تجمیعی</h3>
+        <div id="result-list">فاکتوری اسکن نشده است</div>
     </div>
 
-<script>
-    let allItems = [];
-    let scannedInvoices = new Set();
+    <script>
+        const codeReader = new ZXing.BrowserQRCodeReader();
+        const videoElement = document.getElementById('video');
+        let allItems = [];
+        let scannedDocs = new Set();
 
-    const html5QrCode = new Html5Qrcode("reader");
-    
-    // تنظیمات بهینه برای کدهای متراکم و ریز
-    const config = { 
-        fps: 25, 
-        qrbox: (viewfinderWidth, viewfinderHeight) => {
-            return { width: viewfinderWidth * 0.8, height: viewfinderHeight * 0.5 };
-        },
-        aspectRatio: 1.0,
-        experimentalFeatures: {
-            useBarCodeDetectorIfSupported: true // استفاده از موتور شتاب‌دهنده سخت‌افزاری
-        }
-    };
-
-    function onScanSuccess(decodedText) {
-        try {
-            // ساختار دیتای شما: ["Ali", ["Kala", 5], ...]
-            const data = JSON.parse(decodedText);
-            const customerName = data[0];
-
-            if (scannedInvoices.has(customerName)) {
-                console.log("تکراری");
-                return;
+        // شروع اسکنر با قدرت حداکثری
+        codeReader.decodeFromVideoDevice(null, 'video', (result, err) => {
+            if (result) {
+                console.log("Found QR:", result.text);
+                processQR(result.text);
             }
+            if (err && !(err instanceof ZXing.NotFoundException)) {
+                console.error(err);
+            }
+        });
 
-            scannedInvoices.add(customerName);
-            document.getElementById('status').innerText = `✅ فاکتور ${customerName} اضافه شد`;
-            document.getElementById('status').style.background = "#38a169";
+        document.getElementById('status').innerText = "🎥 دوربین فعال شد - اسکنر Zxing آماده است";
 
-            for (let i = 1; i < data.length; i++) {
-                allItems.push({
-                    product: data[i][0],
-                    qty: data[i][1],
-                    owner: customerName
+        function processQR(text) {
+            try {
+                const data = JSON.parse(text);
+                const name = data[0];
+
+                if (scannedDocs.has(name)) return;
+                scannedDocs.add(name);
+
+                for (let i = 1; i < data.length; i++) {
+                    allItems.push({ product: data[i][0], qty: data[i][1], owner: name });
+                }
+                render();
+                if (navigator.vibrate) navigator.vibrate(200);
+            } catch (e) {
+                console.log("دیتای QR نامعتبر است یا فرمت JSON ندارد");
+            }
+        }
+
+        function render() {
+            const container = document.getElementById('result-list');
+            container.innerHTML = '';
+            
+            const grouped = allItems.reduce((acc, curr) => {
+                if (!acc[curr.product]) acc[curr.product] = [];
+                acc[curr.product].push(curr);
+                return acc;
+            }, {});
+
+            for (let prod in grouped) {
+                let total = grouped[prod].reduce((s, c) => s + c.qty, 0);
+                let html = `<div style="background:#edf2f7; padding:8px; font-weight:bold; margin-top:10px;">📦 ${prod} (جمع: ${total})</div>`;
+                grouped[prod].forEach(it => {
+                    html += `
+                        <div class="item">
+                            <span><span class="owner-tag">${it.owner}</span></span>
+                            <strong>${it.qty} عدد</strong>
+                        </div>`;
                 });
+                container.innerHTML += html;
             }
-
-            render();
-            if (navigator.vibrate) navigator.vibrate([100, 50, 100]); // ویبره تایید
-        } catch (e) {
-            console.error("خطا در پردازش دیتای QR");
         }
-    }
-
-    // شروع به کار دوربین
-    html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess)
-    .then(() => document.getElementById('status').innerText = "🎥 دوربین فعال است - اسکن کنید")
-    .catch(err => {
-        document.getElementById('status').innerText = "❌ خطا: دوربین باز نشد (فقط در HTTPS کار می‌کند)";
-        document.getElementById('status').
+    </script>
+</body>
+</html>
