@@ -3,94 +3,119 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Piker Final 🚀</title>
+    <title>Piker Professional 🚀</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        body { font-family: Tahoma, sans-serif; margin: 0; background: #f4f7f6; color: #333; text-align: center; }
-        #reader { width: 100%; max-width: 500px; margin: auto; background: #000; border-bottom: 5px solid #2ecc71; }
-        .container { padding: 15px; }
-        .product-card { background: white; border-radius: 10px; margin-bottom: 10px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.1); border-right: 10px solid #3498db; }
-        .header { background: #34495e; color: white; padding: 10px; display: flex; justify-content: space-between; font-size: 14px; }
-        .row { padding: 10px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; }
-        .qty { background: #2c3e50; color: white; padding: 3px 10px; border-radius: 15px; font-weight: bold; }
-        .customer-name { font-size: 11px; color: #7f8c8d; }
+        body { font-family: Tahoma, sans-serif; margin: 0; background: #f0f2f5; color: #1a202c; }
+        #reader { width: 100%; max-width: 500px; margin: auto; background: #000; border-bottom: 4px solid #38a169; }
+        .container { padding: 15px; padding-bottom: 80px; }
+        .product-card { background: white; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); overflow: hidden; border-right: 8px solid #3182ce; }
+        .group-title { background: #2d3748; color: white; padding: 12px; display: flex; justify-content: space-between; font-weight: bold; }
+        .customer-row { padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #edf2f7; }
+        .qty-label { background: #e2e8f0; padding: 2px 8px; border-radius: 10px; font-weight: bold; font-size: 14px; }
+        #status-box { background: #ffd700; color: #000; padding: 5px; font-size: 11px; text-align: center; }
     </style>
 </head>
 <body>
 
     <div id="reader"></div>
-    <div id="status" style="padding:10px; background:#2c3e50; color:white; font-size:12px;">آماده اسکن فاکتور جدید...</div>
+    <div id="status-box">در حال انتظار برای اسکن فاکتور...</div>
 
-    <div class="container" id="main-list">
-        </div>
+    <div class="container" id="main-display">
+        <p style="text-align:center; color:#718096; margin-top:50px;">هنوز هیچ کالایی اسکن نشده است.</p>
+    </div>
 
-    <script>
-        let inventory = {}; // برای ذخیره و تجمیع: { "نام کالا": { total: 0, details: [] } }
-        let scannedOrders = new Set();
-        const html5QrCode = new Html5Qrcode("reader");
+<script>
+    let inventory = {}; // ساختار: { "Title": { total: 0, orders: [{name, qty}] } }
+    let scannedHashes = new Set();
+    const html5QrCode = new Html5Qrcode("reader");
 
-        function onScanSuccess(decodedText) {
-            try {
-                const data = JSON.parse(decodedText);
-                const orderId = data.customer.orderDate + data.customer.name; // ایجاد یک آیدی یکتا
+    function processQR(decodedText) {
+        try {
+            const data = JSON.parse(decodedText);
+            
+            // ۱. بررسی وجود فیلدهای حیاتی
+            if (!data.customer || !data.items) {
+                showStatus("⚠️ خطای ساختار: بخش مشتری یا کالا پیدا نشد", "#e53e3e");
+                return;
+            }
 
-                if (scannedOrders.has(orderId)) return;
-                scannedOrders.add(orderId);
+            const cName = data.customer.name;
+            const orderKey = data.customer.orderDate + cName;
 
-                if (navigator.vibrate) navigator.vibrate(150);
-                
-                const customerName = data.customer.name;
-                const items = data.items;
+            // ۲. جلوگیری از تکرار
+            if (scannedHashes.has(orderKey)) {
+                showStatus("✅ این فاکتور قبلاً ثبت شده", "#38a169");
+                return;
+            }
+            scannedHashes.add(orderKey);
 
-                // پیمایش کالاهای داخل فاکتور
-                for (let key in items) {
-                    const item = items[key];
-                    const title = item.title;
-                    const qty = parseInt(item.quantity);
+            // ۳. پیمایش شیء Items (چون آرایه نیست)
+            const itemsObj = data.items;
+            Object.keys(itemsObj).forEach(key => {
+                const item = itemsObj[key];
+                const title = item.title;
+                const qty = parseInt(item.quantity);
 
-                    if (!inventory[title]) {
-                        inventory[title] = { total: 0, customers: [] };
-                    }
-                    inventory[title].total += qty;
-                    inventory[title].customers.push({ name: customerName, qty: qty });
+                if (!inventory[title]) {
+                    inventory[title] = { total: 0, orders: [] };
                 }
+                inventory[title].total += qty;
+                inventory[title].orders.push({ name: cName, qty: qty });
+            });
 
-                render();
-                document.getElementById('status').innerText = "✅ فاکتور " + customerName + " اضافه شد";
-            } catch (e) {
-                console.error("خطا در تحلیل دیتای فاکتور", e);
-            }
+            if (navigator.vibrate) navigator.vibrate(200);
+            showStatus("✅ فاکتور " + cName + " با موفقیت اضافه شد", "#38a169");
+            render();
+
+        } catch (err) {
+            showStatus("❌ خطا: دیتای QR ناقص یا خراب است. دوباره اسکن کنید", "#e53e3e");
+            console.error(err);
         }
+    }
 
-        function render() {
-            const container = document.getElementById('main-list');
-            container.innerHTML = '';
+    function render() {
+        const container = document.getElementById('main-display');
+        container.innerHTML = '';
 
-            for (let title in inventory) {
-                let html = `
-                    <div class="product-card">
-                        <div class="header">
-                            <span>📦 ${title}</span>
-                            <span>جمع کل: ${inventory[title].total}</span>
-                        </div>`;
-                
-                inventory[title].customers.forEach(c => {
-                    html += `
-                        <div class="row">
-                            <span class="customer-name">👤 ${c.name}</span>
-                            <div>
-                                <span class="qty">${c.qty}</span>
-                                <input type="checkbox" style="margin-right:10px; width:18px; height:18px;">
-                            </div>
-                        </div>`;
-                });
+        Object.keys(inventory).forEach(title => {
+            const group = inventory[title];
+            let html = `
+                <div class="product-card">
+                    <div class="group-title">
+                        <span>📦 ${title}</span>
+                        <span>مجموع: ${group.total}</span>
+                    </div>`;
+            
+            group.orders.forEach(ord => {
+                html += `
+                    <div class="customer-row">
+                        <span style="font-size:13px;">👤 ${ord.name}</span>
+                        <div>
+                            <span class="qty-label">${ord.qty} عدد</span>
+                            <input type="checkbox" style="width:20px; height:20px; margin-right:10px;">
+                        </div>
+                    </div>`;
+            });
 
-                html += `</div>`;
-                container.innerHTML += html;
-            }
-        }
+            html += `</div>`;
+            container.innerHTML += html;
+        });
+    }
 
-        html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, onScanSuccess);
-    </script>
+    function showStatus(msg, color) {
+        const box = document.getElementById('status-box');
+        box.innerText = msg;
+        box.style.background = color;
+        box.style.color = "#fff";
+    }
+
+    // شروع اسکنر
+    html5QrCode.start(
+        { facingMode: "environment" }, 
+        { fps: 15, qrbox: 250 }, 
+        processQR
+    ).catch(e => showStatus("خطا در باز کردن دوربین", "#e53e3e"));
+</script>
 </body>
 </html>
