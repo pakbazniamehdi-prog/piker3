@@ -3,79 +3,76 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Piker Ultra Fast - Compressed</title>
+    <title>Piker Pro - Debug Mode</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        body { font-family: Tahoma; margin: 0; background: #121212; color: white; text-align: center; }
-        #reader { width: 100%; max-width: 500px; margin: auto; border-bottom: 3px solid #00ff00; }
-        .list { background: white; color: black; padding: 15px; min-height: 100vh; border-radius: 20px 20px 0 0; margin-top: -10px; }
-        .row { border-bottom: 1px solid #ddd; padding: 10px; display: flex; justify-content: space-between; }
-        .tag { background: #eee; padding: 2px 5px; border-radius: 4px; font-size: 12px; }
+        body { font-family: Tahoma; margin: 0; background: #1a202c; color: white; text-align: center; }
+        #reader { width: 100%; max-width: 500px; margin: auto; }
+        #debug-log { background: #2d3748; color: #a0aec0; font-size: 10px; padding: 5px; height: 40px; overflow: hidden; }
+        .list { background: white; color: black; padding: 15px; min-height: 100vh; border-radius: 20px 20px 0 0; }
+        .item { border-bottom: 1px solid #eee; padding: 10px; display: flex; justify-content: space-between; }
     </style>
 </head>
 <body>
     <div id="reader"></div>
-    <div id="status" style="padding:10px;">آماده اسکن (نسخه بهینه)</div>
+    <div id="debug-log">آخرین متن شناسایی شده: <span id="raw-text">...</span></div>
     
     <div class="list" id="res">
-        <h3 style="color:#333">لیست کالاهای تجمیعی</h3>
-        <div id="items">هنوز فاکتوری اسکن نشده</div>
+        <h3 style="color:#333">لیست کالاها</h3>
+        <div id="items">در حال انتظار...</div>
     </div>
 
     <script>
-        let allData = [];
-        let scanned = new Set();
+        let allItems = [];
+        let scannedDocs = new Set();
+        let isProcessing = false; // قفل برای جلوگیری از ویبره ممتد
 
         const scanner = new Html5Qrcode("reader");
 
-        function processData(raw) {
-            // منطق جدید: باز کردن دیتای فشرده (مثلا S|R:10|B:5)
-            // اگر دیتای تو هنوز JSON است، این بخش را به همان JSON.parse برگردان
+        function onScanSuccess(text) {
+            if (isProcessing) return; // اگر در حال پردازش است، کاری نکن
+            
+            document.getElementById('raw-text').innerText = text;
+
             try {
-                let data;
-                if(raw.startsWith('[')) {
-                    data = JSON.parse(raw);
-                } else {
-                    // رمزگشایی فرمت فشرده: اسم|کالا:تعداد|کالا:تعداد
-                    let parts = raw.split('|');
-                    let name = parts[0];
-                    data = [name];
-                    for(let i=1; i<parts.length; i++) {
-                        let item = parts[i].split(':');
-                        data.push([item[0], parseInt(item[1])]);
-                    }
-                }
+                const data = JSON.parse(text);
+                const name = data[0];
 
-                if(scanned.has(data[0])) return;
-                scanned.add(data[0]);
+                if (scannedDocs.has(name)) return;
 
-                for(let i=1; i<data.length; i++) {
-                    allData.push({ p: data[i][0], q: data[i][1], o: data[0] });
+                // مرحله تایید نهایی
+                isProcessing = true; 
+                if (navigator.vibrate) navigator.vibrate(200);
+                
+                scannedDocs.add(name);
+                for (let i = 1; i < data.length; i++) {
+                    allItems.push({ p: data[i][0], q: data[i][1], o: name });
                 }
                 render();
-            } catch(e) { alert("کد خوانده شد ولی فرمت آن اشتباه است!"); }
+
+                // ۲ ثانیه صبر کن و بعد دوباره آماده اسکن شو
+                setTimeout(() => { isProcessing = false; }, 2000);
+
+            } catch (e) {
+                // اگر JSON نبود، ویبره نزن و فقط در لاگ بنویس
+                console.log("دیتای ناقص");
+            }
         }
 
         function render() {
             const div = document.getElementById('items');
             div.innerHTML = '';
-            let groups = allData.reduce((acc, curr) => {
-                acc[curr.p] = (acc[curr.p] || 0) + curr.q;
+            let grouped = allItems.reduce((acc, curr) => {
+                if(!acc[curr.p]) acc[curr.p] = 0;
+                acc[curr.p] += curr.q;
                 return acc;
             }, {});
-
-            for(let p in groups) {
-                div.innerHTML += `<div class="row">
-                    <span>📦 <b>${p}</b></span>
-                    <span>تعداد کل: <b>${groups[p]}</b></span>
-                </div>`;
+            for(let p in grouped) {
+                div.innerHTML += `<div class="item"><b>${p}</b> <span>${grouped[p]} عدد</span></div>`;
             }
         }
 
-        scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (text) => {
-            processData(text);
-            if(navigator.vibrate) navigator.vibrate(100);
-        });
+        scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, onScanSuccess);
     </script>
 </body>
 </html>
