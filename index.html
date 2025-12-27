@@ -38,7 +38,8 @@
         if(!file) return;
         document.getElementById('st').innerText = "⏳ پردازش سنگین تصویر...";
 
-        qrEngine.scanFile(file, true) // فعال کردن حالت Scan-Extra-DPI
+        // پردازش فایل با حساسیت بالا
+        qrEngine.scanFile(file, true)
         .then(res => process(res))
         .catch(err => {
             alert("❌ باز هم خوانده نشد! مشکل از کیفیت چاپ QR است.");
@@ -49,12 +50,13 @@
     function process(text) {
         try {
             const data = JSON.parse(text);
-            const name = data.customer.name || "نامشخص";
-            const id = (data.customer.orderDate || "") + name;
+            const name = (data.customer && data.customer.name) ? data.customer.name : "نامشخص";
+            const id = (data.customer && data.customer.orderDate ? data.customer.orderDate : "") + name;
+            
             if(scanned.has(id)) return;
             scanned.add(id);
 
-            const items = data.items;
+            const items = data.items || {};
             Object.keys(items).forEach(k => {
                 const it = items[k];
                 if(!inventory[it.title]) inventory[it.title] = { t: 0, d: [] };
