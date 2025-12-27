@@ -3,76 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Piker Pro - Debug Mode</title>
+    <title>Piker Reset</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        body { font-family: Tahoma; margin: 0; background: #1a202c; color: white; text-align: center; }
-        #reader { width: 100%; max-width: 500px; margin: auto; }
-        #debug-log { background: #2d3748; color: #a0aec0; font-size: 10px; padding: 5px; height: 40px; overflow: hidden; }
-        .list { background: white; color: black; padding: 15px; min-height: 100vh; border-radius: 20px 20px 0 0; }
-        .item { border-bottom: 1px solid #eee; padding: 10px; display: flex; justify-content: space-between; }
+        body { margin: 0; background: #000; color: #fff; font-family: sans-serif; text-align: center; }
+        #reader { width: 100vw; height: 60vh; background: #000; }
+        #result { background: #fff; color: #000; min-height: 40vh; padding: 20px; border-radius: 20px 20px 0 0; }
+        .btn { padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 5px; margin: 10px; }
     </style>
 </head>
 <body>
+
     <div id="reader"></div>
-    <div id="debug-log">آخرین متن شناسایی شده: <span id="raw-text">...</span></div>
-    
-    <div class="list" id="res">
-        <h3 style="color:#333">لیست کالاها</h3>
-        <div id="items">در حال انتظار...</div>
+    <div id="result">
+        <button class="btn" onclick="startScanner()">۱. باز کردن دوربین</button>
+        <div id="out">منتظر اسکن...</div>
     </div>
 
     <script>
-        let allItems = [];
-        let scannedDocs = new Set();
-        let isProcessing = false; // قفل برای جلوگیری از ویبره ممتد
-
         const scanner = new Html5Qrcode("reader");
+        let allItems = [];
 
-        function onScanSuccess(text) {
-            if (isProcessing) return; // اگر در حال پردازش است، کاری نکن
-            
-            document.getElementById('raw-text').innerText = text;
-
-            try {
-                const data = JSON.parse(text);
-                const name = data[0];
-
-                if (scannedDocs.has(name)) return;
-
-                // مرحله تایید نهایی
-                isProcessing = true; 
-                if (navigator.vibrate) navigator.vibrate(200);
+        function startScanner() {
+            const config = { fps: 10, qrbox: 250 };
+            scanner.start({ facingMode: "environment" }, config, (text) => {
+                // تایید اسکن با ویبره
+                if (navigator.vibrate) navigator.vibrate(100);
                 
-                scannedDocs.add(name);
-                for (let i = 1; i < data.length; i++) {
-                    allItems.push({ p: data[i][0], q: data[i][1], o: name });
+                try {
+                    const data = JSON.parse(text);
+                    document.getElementById('out').innerHTML = "✅ فاکتور ثبت شد: " + data[0];
+                    // منطق تجمیع شما اینجا قرار می‌گیرد
+                } catch(e) {
+                    document.getElementById('out').innerHTML = "⚠️ کد خوانده شد ولی فرمت آن JSON نیست!";
                 }
-                render();
-
-                // ۲ ثانیه صبر کن و بعد دوباره آماده اسکن شو
-                setTimeout(() => { isProcessing = false; }, 2000);
-
-            } catch (e) {
-                // اگر JSON نبود، ویبره نزن و فقط در لاگ بنویس
-                console.log("دیتای ناقص");
-            }
+            }).catch(err => {
+                alert("خطا: دوربین پیدا نشد یا اجازه دسترسی ندارید.");
+            });
         }
-
-        function render() {
-            const div = document.getElementById('items');
-            div.innerHTML = '';
-            let grouped = allItems.reduce((acc, curr) => {
-                if(!acc[curr.p]) acc[curr.p] = 0;
-                acc[curr.p] += curr.q;
-                return acc;
-            }, {});
-            for(let p in grouped) {
-                div.innerHTML += `<div class="item"><b>${p}</b> <span>${grouped[p]} عدد</span></div>`;
-            }
-        }
-
-        scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, onScanSuccess);
     </script>
 </body>
 </html>
