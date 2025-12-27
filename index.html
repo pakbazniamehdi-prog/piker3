@@ -3,39 +3,94 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Piker Detective</title>
+    <title>Piker Final 🚀</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        body { font-family: sans-serif; margin: 0; background: #1a202c; color: white; text-align: center; }
-        #reader { width: 100%; max-width: 500px; margin: auto; }
-        #output-box { 
-            background: #fff; color: #000; margin: 20px; padding: 20px; 
-            border-radius: 15px; min-height: 100px; word-break: break-all;
-            border: 5px solid #f6ad55;
-        }
+        body { font-family: Tahoma, sans-serif; margin: 0; background: #f4f7f6; color: #333; text-align: center; }
+        #reader { width: 100%; max-width: 500px; margin: auto; background: #000; border-bottom: 5px solid #2ecc71; }
+        .container { padding: 15px; }
+        .product-card { background: white; border-radius: 10px; margin-bottom: 10px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.1); border-right: 10px solid #3498db; }
+        .header { background: #34495e; color: white; padding: 10px; display: flex; justify-content: space-between; font-size: 14px; }
+        .row { padding: 10px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; }
+        .qty { background: #2c3e50; color: white; padding: 3px 10px; border-radius: 15px; font-weight: bold; }
+        .customer-name { font-size: 11px; color: #7f8c8d; }
     </style>
 </head>
 <body>
 
     <div id="reader"></div>
-    
-    <div id="output-box">
-        <h3 style="margin-top:0">محتوای داخل QR شما:</h3>
-        <p id="raw-result" style="font-family: monospace; color: blue;">هنوز چیزی اسکن نشده...</p>
-    </div>
+    <div id="status" style="padding:10px; background:#2c3e50; color:white; font-size:12px;">آماده اسکن فاکتور جدید...</div>
+
+    <div class="container" id="main-list">
+        </div>
 
     <script>
-        const scanner = new Html5Qrcode("reader");
-        
-        scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (text) => {
-            if (navigator.vibrate) navigator.vibrate(200);
-            
-            // نمایش مستقیم متن بدون هیچ تغییری
-            document.getElementById('raw-result').innerText = text;
-            
-            // تغییر رنگ باکس برای نشان دادن موفقیت
-            document.getElementById('output-box').style.borderColor = "#48bb78";
-        }).catch(err => alert("دوربین باز نشد!"));
+        let inventory = {}; // برای ذخیره و تجمیع: { "نام کالا": { total: 0, details: [] } }
+        let scannedOrders = new Set();
+        const html5QrCode = new Html5Qrcode("reader");
+
+        function onScanSuccess(decodedText) {
+            try {
+                const data = JSON.parse(decodedText);
+                const orderId = data.customer.orderDate + data.customer.name; // ایجاد یک آیدی یکتا
+
+                if (scannedOrders.has(orderId)) return;
+                scannedOrders.add(orderId);
+
+                if (navigator.vibrate) navigator.vibrate(150);
+                
+                const customerName = data.customer.name;
+                const items = data.items;
+
+                // پیمایش کالاهای داخل فاکتور
+                for (let key in items) {
+                    const item = items[key];
+                    const title = item.title;
+                    const qty = parseInt(item.quantity);
+
+                    if (!inventory[title]) {
+                        inventory[title] = { total: 0, customers: [] };
+                    }
+                    inventory[title].total += qty;
+                    inventory[title].customers.push({ name: customerName, qty: qty });
+                }
+
+                render();
+                document.getElementById('status').innerText = "✅ فاکتور " + customerName + " اضافه شد";
+            } catch (e) {
+                console.error("خطا در تحلیل دیتای فاکتور", e);
+            }
+        }
+
+        function render() {
+            const container = document.getElementById('main-list');
+            container.innerHTML = '';
+
+            for (let title in inventory) {
+                let html = `
+                    <div class="product-card">
+                        <div class="header">
+                            <span>📦 ${title}</span>
+                            <span>جمع کل: ${inventory[title].total}</span>
+                        </div>`;
+                
+                inventory[title].customers.forEach(c => {
+                    html += `
+                        <div class="row">
+                            <span class="customer-name">👤 ${c.name}</span>
+                            <div>
+                                <span class="qty">${c.qty}</span>
+                                <input type="checkbox" style="margin-right:10px; width:18px; height:18px;">
+                            </div>
+                        </div>`;
+                });
+
+                html += `</div>`;
+                container.innerHTML += html;
+            }
+        }
+
+        html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, onScanSuccess);
     </script>
 </body>
 </html>
