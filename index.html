@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Piker Live Pro 🚀</title>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        :root { --main: #2d3748; --success: #38a169; --ali: #3182ce; --saeed: #e53e3e; --ahmad: #d69e2e; }
+        body { font-family: Tahoma, sans-serif; margin: 0; background: #f7fafc; color: var(--main); }
+        #reader { width: 100%; max-width: 500px; margin: 0 auto; background: #000; border-bottom: 5px solid var(--success); }
+        .list-container { padding: 15px; }
+        .group-header { background: var(--main); color: white; padding: 10px; border-radius: 8px; margin-top: 15px; display: flex; justify-content: space-between; font-weight: bold; }
+        .item-card { background: white; padding: 12px; border-radius: 8px; margin-top: 5px; display: flex; justify-content: space-between; align-items: center; border-right: 8px solid #ccc; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        
+        /* استایل اختصاصی مشتریان */
+        .owner-ali { border-right-color: var(--ali); background: #ebf8ff; }
+        .owner-saeed { border-right-color: var(--saeed); background: #fff5f5; }
+        .owner-ahmad { border-right-color: var(--ahmad); background: #fffff0; }
+        
+        .controls { padding: 10px; text-align: center; }
+        button { padding: 10px 20px; border-radius: 5px; border: none; cursor: pointer; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div id="reader"></div>
+    
+    <div class="controls">
+        <button onclick="location.reload()" style="background: #cbd5e0;">🔄 رفرش صفحه</button>
+        <button onclick="clearAll()" style="background: var(--saeed); color: white;">🗑 پاکسازی لیست</button>
+    </div>
+
+    <div class="list-container" id="result">
+        <p style="text-align:center; color:#a0aec0;">در حال انتظار برای اسکن فاکتور...</p>
+    </div>
+
+<script>
+    let allInvoices = [];
+    let scannedNames = new Set();
+
+    const scanner = new Html5Qrcode("reader");
+    
+    function onScanSuccess(decodedText) {
+        try {
+            const data = JSON.parse(decodedText); // فرمت: ["ali", ["kala1", 2], ["kala2", 5]]
+            const name = data[0];
+
+            if (scannedNames.has(name)) return;
+            scannedNames.add(name);
+
+            for (let i = 1; i < data.length; i++) {
+                allInvoices.push({ product: data[i][0], qty: data[i][1], owner: name });
+            }
+
+            render();
+            if (navigator.vibrate) navigator.vibrate(150); // لرزش تایید اسکن
+        } catch (e) { console.error("فرمت QR اشتباه است"); }
+    }
+
+    // استارت دوربین
+    scanner.start({ facingMode: "environment" }, { fps: 20, qrbox: 250 }, onScanSuccess);
+
+    function render() {
+        const container = document.getElementById('result');
+        container.innerHTML = '';
+
+        // تجمیع کالاها
+        const grouped = allInvoices.reduce((acc, curr) => {
+            if (!acc[curr.product]) acc[curr.product] = [];
+            acc[curr.product].push(curr);
+            return acc;
+        }, {});
+
+        for (let prod in grouped) {
+            const total = grouped[prod].reduce((s, c) => s + c.qty, 0);
+            let html = `<div class="group-header"><span>📦 ${prod}</span><span>مجموع: ${total}</span></div>`;
+            
+            grouped[prod].forEach(item => {
+                html += `
+                    <div class="item-card owner-${item.owner.toLowerCase()}">
+                        <span>👤 ${item.owner}</span>
+                        <strong>${item.qty} عدد</strong>
+                        <input type="checkbox" style="width:20px; height:20px;">
+                    </div>`;
+            });
+            container.innerHTML += html;
+        }
+    }
+
+    function clearAll() { if(confirm("لیست خالی شود؟")) { allInvoices = []; scannedNames.clear(); render(); } }
+</script>
+</body>
+</html>
