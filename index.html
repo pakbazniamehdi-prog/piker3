@@ -3,103 +3,100 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Piker Final | انبار</title>
+    <title>Piker Industrial v3</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        body { font-family: Tahoma; margin: 0; background: #1a202c; color: white; }
-        #reader { width: 100%; max-width: 500px; margin: auto; background: black; min-height: 250px; }
-        .status { background: #2d3748; padding: 15px; font-size: 14px; text-align: center; border-bottom: 4px solid #38a169; }
-        .card { background: white; color: black; border-radius: 15px; margin: 15px; border-right: 10px solid #3182ce; box-shadow: 0 5px 15px rgba(0,0,0,0.3); overflow: hidden; }
-        .card-header { background: #edf2f7; padding: 12px; font-weight: bold; display: flex; justify-content: space-between; }
-        .row { padding: 10px 15px; display: flex; justify-content: space-between; border-bottom: 1px solid #f1f5f9; }
-        .qty { background: #2d3748; color: white; padding: 2px 10px; border-radius: 10px; font-weight: bold; }
-        .btn-zone { padding: 20px; display: flex; gap: 10px; }
-        button { flex: 1; padding: 15px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; }
+        :root { --bg: #1a202c; --card: #ffffff; --text: #2d3748; }
+        body { font-family: Tahoma; margin: 0; background: var(--bg); color: white; text-align: center; }
+        #reader { width: 100%; max-width: 500px; margin: auto; background: #000; border-bottom: 4px solid #48bb78; }
+        #reader video { filter: contrast(1.3) brightness(1.1); }
+        .status { background: #2d3748; padding: 12px; font-size: 14px; border-bottom: 2px solid #3182ce; }
+        .card { background: var(--card); color: var(--text); border-radius: 12px; margin: 12px; text-align: right; border-right: 8px solid #3182ce; overflow: hidden; }
+        .card-header { background: #edf2f7; padding: 10px; font-weight: bold; display: flex; justify-content: space-between; }
+        .row { padding: 8px 12px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; }
+        .qty { background: #2d3748; color: white; padding: 2px 8px; border-radius: 8px; font-weight: bold; }
     </style>
 </head>
 <body>
 
     <div id="reader"></div>
-    <div class="status" id="st">🔄 در حال فراخوانی دوربین...</div>
+    <div class="status" id="st">📷 آماده اسکن فاکتور (کاغذ یا مانیتور)</div>
 
-    <div class="btn-zone">
-        <button style="background: #3182ce; color: white;" onclick="location.reload()">🔄 رفرش صفحه</button>
-        <button style="background: #e53e3e; color: white;" onclick="clearInventory()">🗑 پاکسازی کل</button>
+    <div id="list-container"></div>
+
+    <div style="padding: 20px;">
+        <button onclick="location.reload()" style="padding: 12px 25px; border-radius: 8px; border: none; background: #3182ce; color: white; font-weight: bold;">🔄 بازنشانی اسکنر</button>
     </div>
-
-    <div id="list"></div>
 
 <script>
     let inventory = {};
-    let scanned = new Set();
-    let scanner;
+    let scannedHashes = new Set();
+    let html5QrCode;
 
-    function startScanner() {
-        scanner = new Html5Qrcode("reader");
+    function start() {
+        html5QrCode = new Html5Qrcode("reader");
         const config = { 
-            fps: 25, 
-            qrbox: { width: 250, height: 250 },
+            fps: 20, 
+            qrbox: { width: 260, height: 260 },
             videoConstraints: { facingMode: "environment", focusMode: "continuous" }
         };
 
-        scanner.start({ facingMode: "environment" }, config, (text) => {
-            try {
-                const data = JSON.parse(text);
-                const id = data.customer.orderDate + data.customer.name;
-                
-                if (scanned.has(id)) {
-                    showStatus("⚠️ فاکتور تکراری است", "#ecc94b");
-                    return;
+        html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess);
+    }
+
+    function onScanSuccess(decodedText) {
+        try {
+            const data = JSON.parse(decodedText);
+            
+            // پیدا کردن نام مشتری به صورت هوشمند برای جلوگیری از undefined
+            let customerName = "نامشخص";
+            if (data.customer && data.customer.name) customerName = data.customer.name;
+            else if (data.name) customerName = data.name;
+
+            const orderDate = (data.customer && data.customer.orderDate) ? data.customer.orderDate : new Date().toLocaleDateString();
+            const uniqueID = orderDate + customerName;
+
+            if (scannedHashes.has(uniqueID)) return;
+            scannedHashes.add(uniqueID);
+            if (navigator.vibrate) navigator.vibrate(150);
+
+            // پردازش کالاها (پشتیبانی از هر دو فرمت آرایه و آبجکت)
+            const items = data.items || {};
+            Object.keys(items).forEach(key => {
+                const item = items[key];
+                const title = item.title || "کالای بدون نام";
+                const qty = parseInt(item.quantity || 0);
+
+                if (!inventory[title]) {
+                    inventory[title] = { total: 0, details: [] };
                 }
-
-                scanned.add(id);
-                if (navigator.vibrate) navigator.vibrate(200);
-
-                const items = data.items;
-                Object.keys(items).forEach(k => {
-                    const it = items[k];
-                    if (!inventory[it.title]) inventory[it.title] = { total: 0, customers: [] };
-                    inventory[it.title].total += parseInt(it.quantity);
-                    inventory[it.title].customers.push({ n: data.customer.name, q: it.quantity });
-                });
-
-                showStatus("✅ " + data.customer.name + " اضافه شد", "#38a169");
-                render();
-            } catch(e) { 
-                showStatus("❌ دیتای QR نامعتبر است", "#e53e3e");
-            }
-        }).catch(err => {
-            showStatus("❌ دوربین مسدود است. اجازه دسترسی بدهید", "#e53e3e");
-        });
-    }
-
-    function showStatus(msg, color) {
-        const s = document.getElementById('st');
-        s.innerText = msg;
-        s.style.background = color;
-    }
-
-    function render() {
-        const div = document.getElementById('list');
-        div.innerHTML = '';
-        Object.keys(inventory).forEach(title => {
-            let html = `<div class="card"><div class="card-header"><span>📦 ${title}</span><span>کل: ${inventory[title].total}</span></div>`;
-            inventory[title].customers.forEach(c => {
-                html += `<div class="row"><span>👤 ${c.n}</span><div><span class="qty">${c.q}</span> <input type="checkbox" style="width:20px;height:20px;margin-right:5px"></div></div>`;
+                inventory[title].total += qty;
+                inventory[title].details.push({ n: customerName, q: qty });
             });
-            div.innerHTML += html + `</div>`;
-        });
-    }
 
-    function clearInventory() {
-        if(confirm("کل لیست پاک شود؟")) {
-            inventory = {}; scanned.clear(); render();
-            showStatus("🗑 لیست پاک شد", "#2d3748");
+            document.getElementById('st').innerText = "✅ فاکتور " + customerName + " ثبت شد";
+            document.getElementById('st').style.background = "#38a169";
+            render();
+
+        } catch (e) {
+            console.error("خطا در پردازش:", e);
         }
     }
 
-    // شروع خودکار بعد از لود صفحه
-    window.onload = startScanner;
+    function render() {
+        const container = document.getElementById('list-container');
+        container.innerHTML = '';
+        Object.keys(inventory).forEach(title => {
+            const product = inventory[title];
+            let html = `<div class="card"><div class="card-header"><span>📦 ${title}</span><span>مجموع: ${product.total}</span></div>`;
+            product.details.forEach(d => {
+                html += `<div class="row"><span>👤 ${d.n}</span><div><span class="qty">${d.q}</span> <input type="checkbox" style="width:18px;height:18px;margin-right:8px"></div></div>`;
+            });
+            container.innerHTML += html + `</div>`;
+        });
+    }
+
+    window.onload = start;
 </script>
 </body>
 </html>
