@@ -2,79 +2,104 @@
 <html lang="fa" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Piker Data Receiver</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Piker Final | انبار</title>
+    <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        body { font-family: Tahoma; margin: 0; background: #f7fafc; text-align: center; }
-        .header { background: #2d3748; color: white; padding: 20px; }
-        .input-box { margin: 20px; padding: 20px; background: white; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        input { width: 90%; padding: 15px; border-radius: 10px; border: 2px solid #3182ce; font-size: 16px; text-align: center; }
-        .card { background: white; border-radius: 12px; margin: 15px; text-align: right; border-right: 10px solid #38a169; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .card-header { background: #edf2f7; padding: 10px; font-weight: bold; display: flex; justify-content: space-between; }
-        .row { padding: 10px; display: flex; justify-content: space-between; border-bottom: 1px solid #f1f5f9; }
-        .qty { background: #2d3748; color: white; padding: 2px 10px; border-radius: 10px; }
+        body { font-family: Tahoma; margin: 0; background: #1a202c; color: white; }
+        #reader { width: 100%; max-width: 500px; margin: auto; background: black; min-height: 250px; }
+        .status { background: #2d3748; padding: 15px; font-size: 14px; text-align: center; border-bottom: 4px solid #38a169; }
+        .card { background: white; color: black; border-radius: 15px; margin: 15px; border-right: 10px solid #3182ce; box-shadow: 0 5px 15px rgba(0,0,0,0.3); overflow: hidden; }
+        .card-header { background: #edf2f7; padding: 12px; font-weight: bold; display: flex; justify-content: space-between; }
+        .row { padding: 10px 15px; display: flex; justify-content: space-between; border-bottom: 1px solid #f1f5f9; }
+        .qty { background: #2d3748; color: white; padding: 2px 10px; border-radius: 10px; font-weight: bold; }
+        .btn-zone { padding: 20px; display: flex; gap: 10px; }
+        button { flex: 1; padding: 15px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
 
-    <div class="header">
-        <h2>سیستم تجمیع Piker (دریافت مستقیم)</h2>
-        <p>دیتا را در کادر زیر وارد کنید (یا از اسکنر استفاده کنید)</p>
+    <div id="reader"></div>
+    <div class="status" id="st">🔄 در حال فراخوانی دوربین...</div>
+
+    <div class="btn-zone">
+        <button style="background: #3182ce; color: white;" onclick="location.reload()">🔄 رفرش صفحه</button>
+        <button style="background: #e53e3e; color: white;" onclick="clearInventory()">🗑 پاکسازی کل</button>
     </div>
 
-    <div class="input-box">
-        <input type="text" id="scanner-input" placeholder="کلیک کنید و اسکن کنید..." autofocus>
-        <p style="font-size: 11px; color: #718096; margin-top: 10px;">نکته: این کادر برای استفاده از هندزفری اسکنر یا کیبورد مجازی طراحی شده است.</p>
-    </div>
-
-    <div id="result"></div>
+    <div id="list"></div>
 
 <script>
     let inventory = {};
-    let scannedHashes = new Set();
-    const input = document.getElementById('scanner-input');
+    let scanned = new Set();
+    let scanner;
 
-    // گوش دادن به ورودی (اگر اسکنر فیزیکی یا اپلیکیشن واسطه دیتا را بفرستد)
-    input.addEventListener('keypress', function (e) {
-        if (e.key === 'Enter') {
-            processData(this.value);
-            this.value = ''; // خالی کردن برای اسکن بعدی
-        }
-    });
+    function startScanner() {
+        scanner = new Html5Qrcode("reader");
+        const config = { 
+            fps: 25, 
+            qrbox: { width: 250, height: 250 },
+            videoConstraints: { facingMode: "environment", focusMode: "continuous" }
+        };
 
-    function processData(text) {
-        try {
-            const data = JSON.parse(text);
-            const id = data.customer.orderDate + data.customer.name;
+        scanner.start({ facingMode: "environment" }, config, (text) => {
+            try {
+                const data = JSON.parse(text);
+                const id = data.customer.orderDate + data.customer.name;
+                
+                if (scanned.has(id)) {
+                    showStatus("⚠️ فاکتور تکراری است", "#ecc94b");
+                    return;
+                }
 
-            if (scannedHashes.has(id)) return;
-            scannedHashes.add(id);
+                scanned.add(id);
+                if (navigator.vibrate) navigator.vibrate(200);
 
-            const items = data.items;
-            Object.keys(items).forEach(key => {
-                const it = items[key];
-                if (!inventory[it.title]) inventory[it.title] = { total: 0, details: [] };
-                inventory[it.title].total += parseInt(it.quantity);
-                inventory[it.title].details.push({ n: data.customer.name, q: it.quantity });
-            });
+                const items = data.items;
+                Object.keys(items).forEach(k => {
+                    const it = items[k];
+                    if (!inventory[it.title]) inventory[it.title] = { total: 0, customers: [] };
+                    inventory[it.title].total += parseInt(it.quantity);
+                    inventory[it.title].customers.push({ n: data.customer.name, q: it.quantity });
+                });
 
-            render();
-        } catch (e) {
-            console.error("فرمت نامعتبر");
-        }
+                showStatus("✅ " + data.customer.name + " اضافه شد", "#38a169");
+                render();
+            } catch(e) { 
+                showStatus("❌ دیتای QR نامعتبر است", "#e53e3e");
+            }
+        }).catch(err => {
+            showStatus("❌ دوربین مسدود است. اجازه دسترسی بدهید", "#e53e3e");
+        });
+    }
+
+    function showStatus(msg, color) {
+        const s = document.getElementById('st');
+        s.innerText = msg;
+        s.style.background = color;
     }
 
     function render() {
-        const res = document.getElementById('result');
-        res.innerHTML = '';
+        const div = document.getElementById('list');
+        div.innerHTML = '';
         Object.keys(inventory).forEach(title => {
             let html = `<div class="card"><div class="card-header"><span>📦 ${title}</span><span>کل: ${inventory[title].total}</span></div>`;
-            inventory[title].details.forEach(d => {
-                html += `<div class="row"><span>👤 ${d.n}</span><div><span class="qty">${d.q}</span> <input type="checkbox" style="width:20px;height:20px;margin-right:5px"></div></div>`;
+            inventory[title].customers.forEach(c => {
+                html += `<div class="row"><span>👤 ${c.n}</span><div><span class="qty">${c.q}</span> <input type="checkbox" style="width:20px;height:20px;margin-right:5px"></div></div>`;
             });
-            res.innerHTML += html + `</div>`;
+            div.innerHTML += html + `</div>`;
         });
     }
+
+    function clearInventory() {
+        if(confirm("کل لیست پاک شود؟")) {
+            inventory = {}; scanned.clear(); render();
+            showStatus("🗑 لیست پاک شد", "#2d3748");
+        }
+    }
+
+    // شروع خودکار بعد از لود صفحه
+    window.onload = startScanner;
 </script>
 </body>
 </html>
