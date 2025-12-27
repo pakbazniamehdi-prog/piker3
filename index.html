@@ -3,84 +3,93 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Piker Photo Edition</title>
+    <title>Piker Max Focus</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        body { font-family: Tahoma; margin: 0; background: #f0f2f5; text-align: center; }
-        .header { background: #2d3748; color: white; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
-        .upload-section { margin: 20px; padding: 30px; border: 3px dashed #3182ce; border-radius: 20px; background: white; }
-        .card { background: white; border-radius: 12px; margin: 15px; text-align: right; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-right: 8px solid #38a169; }
-        .card-header { background: #edf2f7; padding: 10px; font-weight: bold; display: flex; justify-content: space-between; }
-        .row { padding: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; }
-        .qty { background: #2d3748; color: white; padding: 2px 10px; border-radius: 10px; }
+        body { font-family: Tahoma; margin: 0; background: #f4f7f6; text-align: center; color: #2d3748; }
+        .header { background: #2d3748; color: white; padding: 25px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .main-btn { 
+            background: #3182ce; color: white; padding: 20px 40px; 
+            border-radius: 50px; font-size: 20px; font-weight: bold; 
+            border: none; cursor: pointer; margin: 30px 0;
+            box-shadow: 0 10px 20px rgba(49, 130, 206, 0.3);
+        }
+        .card { background: white; border-radius: 15px; margin: 15px; text-align: right; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-right: 10px solid #38a169; overflow: hidden; }
+        .card-header { background: #edf2f7; padding: 12px; font-weight: bold; display: flex; justify-content: space-between; }
+        .row { padding: 12px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; }
+        .qty-label { background: #2d3748; color: white; padding: 2px 10px; border-radius: 10px; font-weight: bold; }
         input[type="file"] { display: none; }
-        .btn-scan { background: #3182ce; color: white; padding: 15px 30px; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer; display: inline-block; }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <h2>سیستم تجمیع فاکتور Piker</h2>
-        <p id="st">آماده پردازش عکس فاکتور</p>
+        <h2>سیستم تجمیع فاکتور (قدرت دوربین اصلی)</h2>
+        <p id="st">برای شروع، روی دکمه زیر بزنید و عکس بگیرید</p>
     </div>
 
-    <div class="upload-section">
-        <label for="qr-input" class="btn-scan">📸 گرفتن عکس از QR فاکتور</label>
-        <input type="file" id="qr-input" accept="image/*" capture="environment">
-        <p style="color: #718096; font-size: 12px; margin-top: 10px;">(از دوربین اصلی گوشی استفاده می‌شود - قدرت فوکوس بالا)</p>
-    </div>
+    <label for="camera-input" class="main-btn">📸 عکس‌برداری و اسکن فاکتور</label>
+    <input type="file" id="camera-input" accept="image/*" capture="environment">
 
-    <div id="list"></div>
+    <div id="result-list"></div>
 
     <script>
         let inventory = {};
         let scanned = new Set();
-        const html5QrCode = new Html5Qrcode("list"); // آبجکت کمکی
+        const html5QrCode = new Html5Qrcode("result-list");
 
-        document.getElementById('qr-input').addEventListener('change', e => {
-            if (e.target.files.length === 0) return;
-            const imageFile = e.target.files[0];
-            document.getElementById('st').innerText = "⏳ در حال تحلیل عکس...";
+        document.getElementById('camera-input').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
 
-            html5QrCode.scanFile(imageFile, true)
-                .then(decodedText => {
-                    processData(decodedText);
-                })
-                .catch(err => {
-                    alert("⚠️ QR پیدا نشد! عکس باید واضح و از نزدیک باشد.");
-                    document.getElementById('st').innerText = "❌ خطا در خواندن عکس";
-                });
+            document.getElementById('st').innerText = "⏳ در حال تحلیل عکس با دقت بالا...";
+            
+            try {
+                const decodedText = await html5QrCode.scanFile(file, true);
+                processQR(decodedText);
+            } catch (err) {
+                alert("❌ اسکن ناموفق! مطمئن شوید عکس کاملاً واضح، عمود و با نور کافی از QR گرفته شده است.");
+                document.getElementById('st').innerText = "❌ دوباره تلاش کنید";
+            }
         });
 
-        function processData(text) {
+        function processQR(text) {
             try {
                 const data = JSON.parse(text);
-                const id = data.customer.orderDate + data.customer.name;
-                if (scanned.has(id)) { alert("این فاکتور قبلاً اضافه شده"); return; }
-                
-                scanned.add(id);
+                const orderKey = data.customer.orderDate + data.customer.name;
+
+                if (scanned.has(orderKey)) {
+                    alert("این فاکتور قبلاً ثبت شده است.");
+                    return;
+                }
+
+                scanned.add(orderKey);
+                if (navigator.vibrate) navigator.vibrate(200);
+
                 const items = data.items;
-                Object.keys(items).forEach(k => {
-                    const it = items[k];
-                    if (!inventory[it.title]) inventory[it.title] = { total: 0, customers: [] };
+                Object.keys(items).forEach(key => {
+                    const it = items[key];
+                    if (!inventory[it.title]) inventory[it.title] = { total: 0, orders: [] };
                     inventory[it.title].total += parseInt(it.quantity);
-                    inventory[it.title].customers.push({ n: data.customer.name, q: it.quantity });
+                    inventory[it.title].orders.push({ name: data.customer.name, qty: it.quantity });
                 });
 
-                document.getElementById('st').innerText = "✅ فاکتور " + data.customer.name + " ثبت شد";
+                document.getElementById('st').innerText = "✅ فاکتور " + data.customer.name + " با موفقیت ثبت شد";
                 render();
-            } catch(e) { alert("فرمت QR صحیح نیست"); }
+            } catch (e) {
+                alert("فرمت دیتای داخل QR با این برنامه سازگار نیست.");
+            }
         }
 
         function render() {
-            const div = document.getElementById('list');
-            div.innerHTML = '';
+            const container = document.getElementById('result-list');
+            container.innerHTML = '';
             Object.keys(inventory).forEach(title => {
-                let html = `<div class="card"><div class="card-header"><span>📦 ${title}</span><span>کل: ${inventory[title].total}</span></div>`;
-                inventory[title].customers.forEach(c => {
-                    html += `<div class="row"><span>👤 ${c.n}</span><div><span class="qty">${c.q}</span> <input type="checkbox" style="width:20px;height:20px;margin-right:5px"></div></div>`;
+                let html = `<div class="card"><div class="card-header"><span>📦 ${title}</span><span>مجموع: ${inventory[title].total}</span></div>`;
+                inventory[title].orders.forEach(ord => {
+                    html += `<div class="row"><span>👤 ${ord.name}</span><div><span class="qty-label">${ord.qty}</span> <input type="checkbox" style="width:22px;height:22px;margin-right:10px"></div></div>`;
                 });
-                div.innerHTML += html + `</div>`;
+                container.innerHTML += html + `</div>`;
             });
         }
     </script>
