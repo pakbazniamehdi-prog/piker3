@@ -3,90 +3,93 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Piker Professional | نسخه نهایی کاغذ</title>
+    <title>Piker Professional | نسخه نهایی</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
         :root { --primary: #2d3748; --success: #38a169; --accent: #3182ce; }
-        body { font-family: Tahoma, sans-serif; margin: 0; background: #f7fafc; color: var(--primary); overflow-x: hidden; }
+        body { font-family: Tahoma, sans-serif; margin: 0; background: #f7fafc; color: var(--primary); }
         
-        /* بخش اسکنر با کنتراست بالا */
-        #reader { width: 100%; max-width: 600px; margin: 0 auto; background: #000; border-bottom: 5px solid var(--success); }
-        #reader video { filter: contrast(1.4) brightness(1.1) sharp(1.2); } /* تقویت بصری برای کاغذ */
-        
+        /* کادر دوربین */
+        #reader { width: 100%; max-width: 500px; margin: 0 auto; background: #000; min-height: 300px; border-bottom: 5px solid var(--success); }
+        #reader video { filter: contrast(1.2) brightness(1.1); } /* کمک به خواندن روی کاغذ */
+
         .status-bar { background: var(--primary); color: white; padding: 12px; font-size: 14px; text-align: center; font-weight: bold; }
         .container { padding: 15px; padding-bottom: 100px; }
         
-        /* کارت محصول */
-        .card { background: white; border-radius: 15px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.07); overflow: hidden; border-right: 10px solid var(--accent); animation: slideIn 0.3s ease-out; }
-        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .card { background: white; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); overflow: hidden; border-right: 10px solid var(--accent); }
+        .card-header { background: #edf2f7; padding: 12px; display: flex; justify-content: space-between; font-weight: bold; }
+        .item-row { padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; }
+        .qty-badge { background: var(--primary); color: white; padding: 3px 10px; border-radius: 20px; font-weight: bold; }
         
-        .card-header { background: #edf2f7; padding: 12px 15px; display: flex; justify-content: space-between; font-weight: bold; border-bottom: 1px solid #e2e8f0; }
-        .item-row { padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; }
-        .qty-badge { background: var(--primary); color: white; padding: 4px 12px; border-radius: 20px; font-weight: bold; font-size: 16px; }
-        
-        .controls { position: fixed; bottom: 0; width: 100%; background: white; padding: 15px; display: flex; gap: 10px; box-shadow: 0 -4px 15px rgba(0,0,0,0.1); box-sizing: border-box; }
-        button { flex: 1; padding: 15px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; font-size: 16px; }
+        .controls { position: fixed; bottom: 0; width: 100%; background: white; padding: 15px; display: flex; gap: 10px; box-shadow: 0 -4px 10px rgba(0,0,0,0.1); box-sizing: border-box; }
+        button { flex: 1; padding: 12px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; }
         .btn-clear { background: #e53e3e; color: white; }
+        .btn-retry { background: #3182ce; color: white; }
     </style>
 </head>
 <body>
 
     <div id="reader"></div>
-    <div class="status-bar" id="status">📷 آماده اسکن فاکتور (کاغذی)</div>
+    <div class="status-bar" id="status">📷 در حال آماده‌سازی دوربین...</div>
 
     <div class="container" id="main-list">
-        <p style="text-align:center; color:#a0aec0; margin-top:50px; font-size: 14px;">هنوز فاکتوری اسکن نشده است. دوربین را روی QR کاغذ نگه دارید.</p>
+        <p style="text-align:center; color:#a0aec0; margin-top:50px;">فاکتوری اسکن نشده است.</p>
     </div>
 
     <div class="controls">
-        <button class="btn-clear" onclick="clearAll()">🗑 پاکسازی کل لیست</button>
-        <button style="background:#3182ce; color: white;" onclick="location.reload()">🔄 بازنشانی دوربین</button>
+        <button class="btn-clear" onclick="clearAll()">🗑 پاکسازی</button>
+        <button class="btn-retry" onclick="startScanner()">🔄 تلاش مجدد دوربین</button>
     </div>
 
 <script>
     let inventory = {}; 
     let scannedHashes = new Set();
-    const html5QrCode = new Html5Qrcode("reader");
+    let html5QrCode;
 
-    const startScanner = () => {
-        // تنظیمات پیشرفته برای شکار نقاط ریز روی کاغذ
+    async function startScanner() {
+        if (html5QrCode) {
+            try { await html5QrCode.stop(); } catch(e) {}
+        }
+        
+        html5QrCode = new Html5Qrcode("reader");
+        const status = document.getElementById('status');
+        
         const config = { 
-            fps: 30, 
-            qrbox: (viewfinderWidth, viewfinderHeight) => {
-                return { width: viewfinderWidth * 0.7, height: viewfinderHeight * 0.7 };
-            },
+            fps: 20, 
+            qrbox: { width: 250, height: 250 },
             aspectRatio: 1.0,
-            videoConstraints: {
+            videoConstraints: { 
                 facingMode: "environment",
-                width: { ideal: 1920 }, // درخواست کیفیت بالا از دوربین
-                height: { ideal: 1080 },
-                focusMode: "continuous"
+                width: { ideal: 1280 },
+                height: { ideal: 720 }
             }
         };
 
-        html5QrCode.start({ facingMode: "environment" }, config, (decodedText) => {
-            processData(decodedText);
-        }).catch(err => {
-            document.getElementById('status').innerText = "❌ خطا: اجازه دسترسی به دوربین داده نشد";
-            document.getElementById('status').style.background = "#e53e3e";
+        // تلاش برای باز کردن دوربین پشت
+        html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess)
+        .then(() => {
+            status.innerText = "✅ دوربین فعال شد - آماده اسکن کاغذ";
+            status.style.background = "#38a169";
+        })
+        .catch(err => {
+            status.innerText = "❌ خطا: اجازه دوربین داده نشد یا HTTPS نیست";
+            status.style.background = "#e53e3e";
+            console.error(err);
         });
-    };
+    }
 
-    function processData(rawText) {
+    function onScanSuccess(decodedText) {
         try {
-            const data = JSON.parse(rawText);
-            
-            // جلوگیری از ثبت تکراری بر اساس نام و تاریخ فاکتور
-            const orderId = data.customer.orderDate + data.customer.name;
+            const data = JSON.parse(decodedText);
+            const customerName = data.customer.name;
+            const orderId = data.customer.orderDate + customerName;
+
             if (scannedHashes.has(orderId)) return;
-            
             scannedHashes.add(orderId);
-            if (navigator.vibrate) navigator.vibrate([100, 50, 100]); // ویبره تایید
 
-            const cName = data.customer.name;
+            if (navigator.vibrate) navigator.vibrate(150);
+
             const itemsObj = data.items;
-
-            // پیمایش آبجکت کالاها (چون آرایه نیست)
             Object.keys(itemsObj).forEach(key => {
                 const item = itemsObj[key];
                 const title = item.title;
@@ -96,11 +99,39 @@
                     inventory[title] = { total: 0, details: [] };
                 }
                 inventory[title].total += qty;
-                inventory[title].details.push({ name: cName, qty: qty });
+                inventory[title].details.push({ name: customerName, qty: qty });
             });
 
-            document.getElementById('status').innerText = "✅ فاکتور " + cName + " ثبت شد";
-            document.getElementById('status').style.background = "#38a169";
             render();
         } catch (e) {
-            console.error("خطا در پردازش JSON:", e);
+            console.error("خطا در پردازش دیتای QR", e);
+        }
+    }
+
+    function render() {
+        const container = document.getElementById('main-list');
+        container.innerHTML = '';
+
+        Object.keys(inventory).forEach(title => {
+            const product = inventory[title];
+            let html = `<div class="card"><div class="card-header"><span>📦 ${title}</span><span>کل: ${product.total}</span></div>`;
+            product.details.forEach(d => {
+                html += `<div class="item-row"><span>👤 ${d.name}</span><div><span class="qty-badge">${d.qty}</span><input type="checkbox" style="width:20px; height:20px; margin-right:10px;"></div></div>`;
+            });
+            html += `</div>`;
+            container.innerHTML += html;
+        });
+    }
+
+    function clearAll() {
+        if(confirm("لیست پاک شود؟")) {
+            inventory = {};
+            scannedHashes.clear();
+            render();
+        }
+    }
+
+    window.onload = startScanner;
+</script>
+</body>
+</html>
