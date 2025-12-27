@@ -3,86 +3,79 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Piker Ultra Scanner (Zxing)</title>
-    <script src="https://unpkg.com/@zxing/library@latest"></script>
+    <title>Piker Ultra Fast - Compressed</title>
+    <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        body { font-family: Tahoma; margin: 0; background: #1a202c; color: white; text-align: center; }
-        #video { width: 100%; max-width: 500px; height: auto; border-bottom: 4px solid #48bb78; }
-        .result-box { background: white; color: #2d3748; padding: 15px; min-height: 50vh; border-radius: 20px 20px 0 0; margin-top: -20px; position: relative; }
-        .item { border-bottom: 1px solid #eee; padding: 10px; display: flex; justify-content: space-between; }
-        .owner-tag { font-size: 11px; padding: 2px 6px; border-radius: 4px; background: #3182ce; color: white; }
+        body { font-family: Tahoma; margin: 0; background: #121212; color: white; text-align: center; }
+        #reader { width: 100%; max-width: 500px; margin: auto; border-bottom: 3px solid #00ff00; }
+        .list { background: white; color: black; padding: 15px; min-height: 100vh; border-radius: 20px 20px 0 0; margin-top: -10px; }
+        .row { border-bottom: 1px solid #ddd; padding: 10px; display: flex; justify-content: space-between; }
+        .tag { background: #eee; padding: 2px 5px; border-radius: 4px; font-size: 12px; }
     </style>
 </head>
 <body>
-
-    <video id="video"></video>
-    <div id="status" style="padding: 10px; font-size: 12px;">در حال لود موتور اسکنر...</div>
-
-    <div class="result-box">
-        <h3 style="margin-top:0">لیست کالاهای تجمیعی</h3>
-        <div id="result-list">فاکتوری اسکن نشده است</div>
+    <div id="reader"></div>
+    <div id="status" style="padding:10px;">آماده اسکن (نسخه بهینه)</div>
+    
+    <div class="list" id="res">
+        <h3 style="color:#333">لیست کالاهای تجمیعی</h3>
+        <div id="items">هنوز فاکتوری اسکن نشده</div>
     </div>
 
     <script>
-        const codeReader = new ZXing.BrowserQRCodeReader();
-        const videoElement = document.getElementById('video');
-        let allItems = [];
-        let scannedDocs = new Set();
+        let allData = [];
+        let scanned = new Set();
 
-        // شروع اسکنر با قدرت حداکثری
-        codeReader.decodeFromVideoDevice(null, 'video', (result, err) => {
-            if (result) {
-                console.log("Found QR:", result.text);
-                processQR(result.text);
-            }
-            if (err && !(err instanceof ZXing.NotFoundException)) {
-                console.error(err);
-            }
-        });
+        const scanner = new Html5Qrcode("reader");
 
-        document.getElementById('status').innerText = "🎥 دوربین فعال شد - اسکنر Zxing آماده است";
-
-        function processQR(text) {
+        function processData(raw) {
+            // منطق جدید: باز کردن دیتای فشرده (مثلا S|R:10|B:5)
+            // اگر دیتای تو هنوز JSON است، این بخش را به همان JSON.parse برگردان
             try {
-                const data = JSON.parse(text);
-                const name = data[0];
+                let data;
+                if(raw.startsWith('[')) {
+                    data = JSON.parse(raw);
+                } else {
+                    // رمزگشایی فرمت فشرده: اسم|کالا:تعداد|کالا:تعداد
+                    let parts = raw.split('|');
+                    let name = parts[0];
+                    data = [name];
+                    for(let i=1; i<parts.length; i++) {
+                        let item = parts[i].split(':');
+                        data.push([item[0], parseInt(item[1])]);
+                    }
+                }
 
-                if (scannedDocs.has(name)) return;
-                scannedDocs.add(name);
+                if(scanned.has(data[0])) return;
+                scanned.add(data[0]);
 
-                for (let i = 1; i < data.length; i++) {
-                    allItems.push({ product: data[i][0], qty: data[i][1], owner: name });
+                for(let i=1; i<data.length; i++) {
+                    allData.push({ p: data[i][0], q: data[i][1], o: data[0] });
                 }
                 render();
-                if (navigator.vibrate) navigator.vibrate(200);
-            } catch (e) {
-                console.log("دیتای QR نامعتبر است یا فرمت JSON ندارد");
-            }
+            } catch(e) { alert("کد خوانده شد ولی فرمت آن اشتباه است!"); }
         }
 
         function render() {
-            const container = document.getElementById('result-list');
-            container.innerHTML = '';
-            
-            const grouped = allItems.reduce((acc, curr) => {
-                if (!acc[curr.product]) acc[curr.product] = [];
-                acc[curr.product].push(curr);
+            const div = document.getElementById('items');
+            div.innerHTML = '';
+            let groups = allData.reduce((acc, curr) => {
+                acc[curr.p] = (acc[curr.p] || 0) + curr.q;
                 return acc;
             }, {});
 
-            for (let prod in grouped) {
-                let total = grouped[prod].reduce((s, c) => s + c.qty, 0);
-                let html = `<div style="background:#edf2f7; padding:8px; font-weight:bold; margin-top:10px;">📦 ${prod} (جمع: ${total})</div>`;
-                grouped[prod].forEach(it => {
-                    html += `
-                        <div class="item">
-                            <span><span class="owner-tag">${it.owner}</span></span>
-                            <strong>${it.qty} عدد</strong>
-                        </div>`;
-                });
-                container.innerHTML += html;
+            for(let p in groups) {
+                div.innerHTML += `<div class="row">
+                    <span>📦 <b>${p}</b></span>
+                    <span>تعداد کل: <b>${groups[p]}</b></span>
+                </div>`;
             }
         }
+
+        scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (text) => {
+            processData(text);
+            if(navigator.vibrate) navigator.vibrate(100);
+        });
     </script>
 </body>
 </html>
