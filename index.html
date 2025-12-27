@@ -3,88 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Piker Debug Pro</title>
+    <title>Piker Detective</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        body { font-family: Tahoma; margin: 0; background: #f0f2f5; text-align: center; }
-        #reader { width: 100%; max-width: 500px; margin: auto; background: #000; }
-        .result-area { background: white; padding: 20px; border-radius: 20px 20px 0 0; margin-top: -20px; min-height: 50vh; box-shadow: 0 -5px 15px rgba(0,0,0,0.1); }
-        .item-row { border-bottom: 1px solid #eee; padding: 12px; display: flex; justify-content: space-between; align-items: center; }
-        .error-msg { color: red; font-size: 12px; background: #ffebee; padding: 10px; border-radius: 5px; }
+        body { font-family: sans-serif; margin: 0; background: #1a202c; color: white; text-align: center; }
+        #reader { width: 100%; max-width: 500px; margin: auto; }
+        #output-box { 
+            background: #fff; color: #000; margin: 20px; padding: 20px; 
+            border-radius: 15px; min-height: 100px; word-break: break-all;
+            border: 5px solid #f6ad55;
+        }
     </style>
 </head>
 <body>
 
     <div id="reader"></div>
     
-    <div class="result-area">
-        <h3 id="msg">آماده اسکن فاکتور...</h3>
-        <div id="final-list"></div>
-        
-        <div style="margin-top:20px; border-top:1px dashed #ccc; padding-top:10px;">
-            <small style="color:#888">آخرین دیتای خام اسکن شده:</small>
-            <div id="raw-data" style="font-size:10px; color:#555; word-break: break-all;">(خالی)</div>
-        </div>
+    <div id="output-box">
+        <h3 style="margin-top:0">محتوای داخل QR شما:</h3>
+        <p id="raw-result" style="font-family: monospace; color: blue;">هنوز چیزی اسکن نشده...</p>
     </div>
 
-<script>
-    let allData = [];
-    let scannedIds = new Set();
-    const html5QrCode = new Html5Qrcode("reader");
-
-    function start() {
-        html5QrCode.start({ facingMode: "environment" }, { fps: 15, qrbox: 250 }, (text) => {
-            if (navigator.vibrate) navigator.vibrate(100);
-            processQR(text);
-        }).catch(err => alert("دوربین باز نشد. اجازه دسترسی بدهید."));
-    }
-
-    function processQR(text) {
-        document.getElementById('raw-data').innerText = text;
+    <script>
+        const scanner = new Html5Qrcode("reader");
         
-        try {
-            // تلاش برای خواندن به صورت JSON
-            const data = JSON.parse(text);
-            const customer = data[0] || "نامشخص";
-
-            if (scannedIds.has(customer)) return;
-            scannedIds.add(customer);
-
-            // استخراج کالاها
-            for (let i = 1; i < data.length; i++) {
-                if (Array.isArray(data[i])) {
-                    allData.push({ p: data[i][0], q: data[i][1], o: customer });
-                }
-            }
-            document.getElementById('msg').innerText = "✅ فاکتور " + customer + " اضافه شد";
-            render();
-        } catch (e) {
-            // اگر JSON نبود، فقط متن را به عنوان یک کالا فرض کن (برای تست)
-            document.getElementById('msg').innerHTML = "<div class='error-msg'>هشدار: دیتای QR ساختار فاکتور ندارد ولی اسکن شد.</div>";
-            console.log("Raw text:", text);
-        }
-    }
-
-    function render() {
-        const container = document.getElementById('final-list');
-        container.innerHTML = '';
-
-        // تجمیع بر اساس نام کالا
-        const grouped = allData.reduce((acc, curr) => {
-            acc[curr.p] = (acc[curr.p] || 0) + curr.q;
-            return acc;
-        }, {});
-
-        for (let name in grouped) {
-            container.innerHTML += `
-                <div class="item-row">
-                    <span>📦 <b>${name}</b></span>
-                    <span>تعداد کل: <b>${grouped[name]}</b></span>
-                </div>`;
-        }
-    }
-
-    window.onload = start;
-</script>
+        scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (text) => {
+            if (navigator.vibrate) navigator.vibrate(200);
+            
+            // نمایش مستقیم متن بدون هیچ تغییری
+            document.getElementById('raw-result').innerText = text;
+            
+            // تغییر رنگ باکس برای نشان دادن موفقیت
+            document.getElementById('output-box').style.borderColor = "#48bb78";
+        }).catch(err => alert("دوربین باز نشد!"));
+    </script>
 </body>
 </html>
