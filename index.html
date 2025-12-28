@@ -3,98 +3,125 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Piker 5-Slot Batcher</title>
+    <title>Piker Isolated Slots</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        :root { --dark: #1a202c; --blue: #3182ce; --green: #38a169; }
+        :root { --dark: #1a202c; --blue: #3182ce; --green: #38a169; --red: #e53e3e; }
         body { font-family: Tahoma; margin: 0; background: #f7fafc; color: var(--dark); padding-bottom: 50px; }
-        .header { background: var(--dark); color: white; padding: 15px; position: sticky; top: 0; z-index: 100; }
+        .header { background: var(--dark); color: white; padding: 15px; position: sticky; top: 0; z-index: 100; text-align: center; }
         
-        /* استایل ۵ جایگاه اسکن */
+        /* طراحی جایگاه‌های اسکن */
         .slot-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 15px; background: white; border-bottom: 2px solid #e2e8f0; }
-        .slot { border: 2px dashed #cbd5e0; border-radius: 12px; padding: 10px; font-size: 12px; cursor: pointer; position: relative; transition: all 0.3s; }
-        .slot.active { border-color: var(--blue); background: #ebf8ff; }
+        .slot { border: 2px dashed #cbd5e0; border-radius: 12px; padding: 10px; font-size: 11px; cursor: pointer; text-align: center; position: relative; }
         .slot.filled { border-style: solid; border-color: var(--green); background: #f0fff4; }
         .slot input { display: none; }
-        .slot-name { display: block; font-weight: bold; margin-bottom: 5px; }
+        .slot-name { display: block; font-weight: bold; margin-bottom: 4px; }
+        .clear-btn { background: var(--red); color: white; border: none; padding: 5px; border-radius: 5px; font-size: 10px; margin-top: 5px; cursor: pointer; }
 
         .container { padding: 15px; }
-        .product-card { background: white; border-radius: 15px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); overflow: hidden; text-align: right; border-right: 8px solid var(--blue); }
-        .product-header { background: #edf2f7; padding: 12px; font-weight: bold; display: flex; justify-content: space-between; }
+        .product-card { background: white; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); overflow: hidden; text-align: right; border-right: 8px solid var(--blue); }
+        .product-header { background: #edf2f7; padding: 10px 15px; font-weight: bold; display: flex; justify-content: space-between; }
         
-        .order-line { padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; }
+        .order-line { padding: 8px 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; position: relative; }
         .order-line::before { content: ""; position: absolute; right: 0; top: 0; bottom: 0; width: 5px; background: var(--c); }
         
         .qty-badge { background: var(--dark); color: white; padding: 2px 10px; border-radius: 8px; font-weight: bold; }
-        .status-bar { font-size: 13px; color: #63b3ed; margin-top: 5px; }
+        .total-badge { background: var(--green); color: white; padding: 2px 8px; border-radius: 5px; }
     </style>
 </head>
 <body>
 
 <div class="header">
     <h3>میز تجمیع ۵ فاکتوری Piker</h3>
-    <div id="st" class="status-bar">فاکتورها را در جایگاه‌های زیر قرار دهید</div>
+    <div id="st" style="font-size: 12px; color: #63b3ed;">هر فاکتور را در جایگاه خود اسکن کنید</div>
 </div>
 
 <div class="slot-container">
-    <label class="slot" id="slot-0">
-        <span class="slot-name">فاکتور ۱</span>
-        <span class="slot-status">⭕ خالی</span>
-        <input type="file" accept="image/*" capture="environment" onchange="handleSlot(0, this)">
-    </label>
-    <label class="slot" id="slot-1">
-        <span class="slot-name">فاکتور ۲</span>
-        <span class="slot-status">⭕ خالی</span>
-        <input type="file" accept="image/*" capture="environment" onchange="handleSlot(1, this)">
-    </label>
-    <label class="slot" id="slot-2">
-        <span class="slot-name">فاکتور ۳</span>
-        <span class="slot-status">⭕ خالی</span>
-        <input type="file" accept="image/*" capture="environment" onchange="handleSlot(2, this)">
-    </label>
-    <label class="slot" id="slot-3">
-        <span class="slot-name">فاکتور ۴</span>
-        <span class="slot-status">⭕ خالی</span>
-        <input type="file" accept="image/*" capture="environment" onchange="handleSlot(3, this)">
-    </label>
-    <label class="slot" id="slot-4">
-        <span class="slot-name">فاکتور ۵</span>
-        <span class="slot-status">⭕ خالی</span>
-        <input type="file" accept="image/*" capture="environment" onchange="handleSlot(4, this)">
-    </label>
-    <button onclick="clearAll()" style="font-size:10px; background:#fc8181; border:none; border-radius:8px; color:white;">پاکسازی کل</button>
+    <div class="slot" id="slot-box-0">
+        <label>
+            <span class="slot-name">جایگاه ۱</span>
+            <span class="status" id="stat-0">⭕ خالی</span>
+            <input type="file" accept="image/*" capture="environment" onchange="processSlot(0, this)">
+        </label>
+        <button class="clear-btn" onclick="resetSlot(0)">حذف</button>
+    </div>
+    <div class="slot" id="slot-box-1">
+        <label>
+            <span class="slot-name">جایگاه ۲</span>
+            <span class="status" id="stat-1">⭕ خالی</span>
+            <input type="file" accept="image/*" capture="environment" onchange="processSlot(1, this)">
+        </label>
+        <button class="clear-btn" onclick="resetSlot(1)">حذف</button>
+    </div>
+    <div class="slot" id="slot-box-2">
+        <label>
+            <span class="slot-name">جایگاه ۳</span>
+            <span class="status" id="stat-2">⭕ خالی</span>
+            <input type="file" accept="image/*" capture="environment" onchange="processSlot(2, this)">
+        </label>
+        <button class="clear-btn" onclick="resetSlot(2)">حذف</button>
+    </div>
+    <div class="slot" id="slot-box-3">
+        <label>
+            <span class="slot-name">جایگاه ۴</span>
+            <span class="status" id="stat-3">⭕ خالی</span>
+            <input type="file" accept="image/*" capture="environment" onchange="processSlot(3, this)">
+        </label>
+        <button class="clear-btn" onclick="resetSlot(3)">حذف</button>
+    </div>
+    <div class="slot" id="slot-box-4">
+        <label>
+            <span class="slot-name">جایگاه ۵</span>
+            <span class="status" id="stat-4">⭕ خالی</span>
+            <input type="file" accept="image/*" capture="environment" onchange="processSlot(4, this)">
+        </label>
+        <button class="clear-btn" onclick="resetSlot(4)">حذف</button>
+    </div>
 </div>
 
 <div class="container" id="output"></div>
 
 <script>
-    let slotsData = [null, null, null, null, null]; // ذخیره دیتای هر اسلات
+    // دیتای اسلات‌ها کاملاً مستقل نگه داشته می‌شود
+    let slots = [null, null, null, null, null];
     const palette = ["#3182ce", "#e53e3e", "#38a169", "#d69e2e", "#805ad5"];
-    const qrEngine = new Html5Qrcode("output");
+    const html5QrCode = new Html5Qrcode("output");
 
-    async function handleSlot(index, input) {
+    async function processSlot(index, input) {
         const file = input.files[0];
         if (!file) return;
 
-        const slotEl = document.getElementById(`slot-${index}`);
-        slotEl.querySelector('.slot-status').innerText = "⏳ پردازش...";
-        
+        const statLabel = document.getElementById(`stat-${index}`);
+        const box = document.getElementById(`slot-box-${index}`);
+        statLabel.innerText = "⏳ پردازش...";
+
         try {
-            const result = await qrEngine.scanFile(file, true);
-            slotsData[index] = JSON.parse(result);
-            slotEl.classList.add('filled');
-            slotEl.querySelector('.slot-status').innerText = "✅ " + slotsData[index].customer.name;
-            calculateBatch();
+            const result = await html5QrCode.scanFile(file, true);
+            slots[index] = JSON.parse(result); // ذخیره دیتا در کشوی مربوطه
+            box.classList.add('filled');
+            statLabel.innerText = "✅ " + slots[index].customer.name;
+            rebuildFinalList(); // فراخوانی موتور تجمیع
         } catch (err) {
-            alert("QR پیدا نشد! دوباره عکس بگیرید.");
-            slotEl.querySelector('.slot-status').innerText = "❌ خطا";
+            alert("QR خوانده نشد!");
+            statLabel.innerText = "❌ خطا";
         }
     }
 
-    function calculateBatch() {
-        let inventory = {};
+    function resetSlot(index) {
+        slots[index] = null;
+        const box = document.getElementById(`slot-box-${index}`);
+        box.classList.remove('filled');
+        document.getElementById(`stat-${index}`).innerText = "⭕ خالی";
+        rebuildFinalList();
+    }
+
+    function rebuildFinalList() {
+        const out = document.getElementById('output');
+        out.innerHTML = ''; // پاکسازی کامل صفحه قبل از محاسبه مجدد
         
-        slotsData.forEach((data, idx) => {
+        let inventory = {}; // دیتای تجمیعی در هر بار از صفر ساخته می‌شود
+
+        slots.forEach((data, idx) => {
             if (!data) return;
 
             const customer = data.customer.name;
@@ -106,54 +133,46 @@
                 const qty = parseInt(it.quantity);
 
                 if (!inventory[title]) {
-                    inventory[title] = { total: 0, barcode: it.barcode, orders: [] };
+                    inventory[title] = { total: 0, customers: [] };
                 }
 
-                // تجمیع فاکتورهای چند تکه برای یک مشتری در یک اسلات یا اسلات‌های مختلف
-                const existingOrder = inventory[title].orders.find(o => o.name === customer);
-                if (existingOrder) {
-                    existingOrder.q += qty;
+                // تجمیع هوشمند برای یک مشتری در همان اسلات
+                const existing = inventory[title].customers.find(c => c.name === customer);
+                if (existing) {
+                    existing.q += qty;
                 } else {
-                    inventory[title].orders.push({ name: customer, q: qty, color: palette[idx % palette.length] });
+                    inventory[title].customers.push({ 
+                        name: customer, 
+                        q: qty, 
+                        color: palette[idx % palette.length] 
+                    });
                 }
                 inventory[title].total += qty;
             });
         });
 
-        render(inventory);
-    }
-
-    function render(inventory) {
-        const out = document.getElementById('output');
-        out.innerHTML = '';
-
+        // رندر کردن دیتای جدید
         Object.keys(inventory).sort().forEach(title => {
             const p = inventory[title];
             let html = `
                 <div class="product-card">
                     <div class="product-header">
                         <span>📦 ${title}</span>
-                        <span style="color:var(--green)">مجموع: ${p.total}</span>
+                        <span class="total-badge">کل: ${p.total}</span>
                     </div>`;
 
-            p.orders.forEach(ord => {
+            p.customers.forEach(c => {
                 html += `
-                    <div class="order-line" style="--c: ${ord.color}">
-                        <span style="font-weight:bold; color:${ord.color}">👤 ${ord.name}</span>
+                    <div class="order-line" style="--c: ${c.color}">
+                        <span style="font-weight:bold; color:${c.color}">👤 ${c.name}</span>
                         <div>
-                            <span class="qty-badge">${ord.q}</span>
-                            <input type="checkbox" style="width:20px; height:20px; margin-right:10px;">
+                            <span class="qty-badge">${c.q}</span>
+                            <input type="checkbox" style="width:22px; height:22px; margin-right:10px;">
                         </div>
                     </div>`;
             });
             out.innerHTML += html + `</div>`;
         });
-    }
-
-    function clearAll() {
-        if(confirm("آیا کل میز کار پاک شود؟")) {
-            location.reload();
-        }
     }
 </script>
 </body>
