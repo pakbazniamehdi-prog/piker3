@@ -3,50 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Piker PRO: Flash & Google Search</title>
+    <title>Piker Master (Barcode Search)</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        :root { --bg: #111827; --card: #1f2937; --accent: #3b82f6; --success: #10b981; --text: #f3f4f6; }
-        body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 0; }
-        .header { background: #000; padding: 15px; text-align: center; font-weight: bold; border-bottom: 2px solid var(--accent); }
+        :root { --bg: #1a202c; --card-bg: #2d3748; --accent: #4299e1; --text: #f7fafc; }
+        body { font-family: sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 0; }
+        .header { background: #000; padding: 15px; text-align: center; font-weight: bold; }
         
-        /* اسلات‌ها */
         .slot-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 15px; }
-        .slot-card { background: var(--card); border: 2px solid transparent; border-radius: 12px; padding: 15px 5px; text-align: center; cursor: pointer; }
-        .slot-card.active { border-color: var(--accent); box-shadow: 0 0 10px var(--accent); }
-        .slot-card.filled { border-color: var(--success); background: rgba(16, 185, 129, 0.1); }
+        .slot-card { background: var(--card-bg); border: 2px solid transparent; border-radius: 12px; padding: 15px 5px; text-align: center; cursor: pointer; }
+        .slot-card.active { border-color: var(--accent); background: #2c5282; }
+        .slot-card.filled { border-color: #48bb78; background: #22543d; }
 
-        /* باکس اسکنر */
-        #scanner-wrapper { display: none; padding: 10px; background: #000; position: fixed; inset: 0; z-index: 1000; }
-        #reader { width: 100%; height: 70vh; border-radius: 15px; }
-        .scanner-controls { display: flex; gap: 10px; margin-top: 15px; justify-content: center; }
-        .btn { padding: 12px 25px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; }
-        .btn-flash { background: #f59e0b; color: #000; }
-        .btn-close { background: #ef4444; color: #fff; }
+        #scanner-wrapper { display: none; padding: 10px; background: #000; position: relative; }
+        #reader { width: 100%; border-radius: 12px; overflow: hidden; }
+        .scanner-btns { display: flex; gap: 5px; margin-top: 10px; }
+        .btn-action { flex: 1; padding: 12px; text-align: center; border-radius: 8px; cursor: pointer; font-weight: bold; border: none; }
 
-        /* کارت محصول */
-        .container { padding: 10px; margin-bottom: 50px; }
-        .product-card { background: var(--card); border-radius: 16px; margin-bottom: 15px; overflow: hidden; border-right: 6px solid var(--accent); }
-        .product-header { padding: 15px; background: rgba(0,0,0,0.3); }
-        .p-title { font-size: 16px; font-weight: bold; margin-bottom: 5px; }
+        .product-card { background: var(--card-bg); border-radius: 15px; margin: 15px; overflow: hidden; border-right: 5px solid var(--accent); box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        .product-header { padding: 12px; display: flex; align-items: center; background: rgba(0,0,0,0.2); }
         
-        /* بارکد بولد برای جستجو */
-        .barcode-link { 
-            display: inline-block; background: #374151; color: var(--accent); 
-            padding: 5px 12px; border-radius: 6px; font-weight: 800; 
-            text-decoration: none; border: 1px solid var(--accent); margin-top: 5px;
-            font-family: monospace; font-size: 14px;
+        /* استایل بارکد کلیک‌شونده */
+        .barcode-btn {
+            display: inline-block;
+            margin-top: 8px;
+            background: #2b6cb0;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: bold;
+            border: 1px solid var(--accent);
         }
-        .barcode-link:active { background: var(--accent); color: white; }
 
-        .order-row { padding: 12px 15px; display: flex; justify-content: space-between; border-top: 1px solid #374151; }
-        .qty { background: #000; padding: 2px 10px; border-radius: 6px; font-weight: bold; color: var(--success); }
-        input[type="checkbox"] { width: 22px; height: 22px; accent-color: var(--success); }
+        .order-row { padding: 10px 15px; display: flex; justify-content: space-between; border-top: 1px solid #4a5568; }
+        .qty { background: #000; padding: 2px 8px; border-radius: 5px; font-weight: bold; }
     </style>
 </head>
 <body>
 
-<div class="header">PIKER MASTER: FLASH & GOOGLE</div>
+<div class="header">PIKER LIVE + BARCODE SEARCH</div>
 
 <div class="slot-container">
     <div class="slot-card" id="sc0" onclick="startScan(0)"><b>۱</b><span id="u0">خالی</span></div>
@@ -54,28 +51,31 @@
     <div class="slot-card" id="sc2" onclick="startScan(2)"><b>۳</b><span id="u2">خالی</span></div>
     <div class="slot-card" id="sc3" onclick="startScan(3)"><b>۴</b><span id="u3">خالی</span></div>
     <div class="slot-card" id="sc4" onclick="startScan(4)"><b>۵</b><span id="u4">خالی</span></div>
-    <div class="slot-card" onclick="location.reload()" style="background:#7f1d1d"><b>✖</b><span>ریست</span></div>
+    <div class="slot-card" onclick="location.reload()" style="background:#742a2a"><b>✖</b><span>ریست</span></div>
 </div>
 
 <div id="scanner-wrapper">
     <div id="reader"></div>
-    <div class="scanner-controls">
-        <button class="btn btn-flash" id="flash-btn" onclick="toggleFlash()">🔦 روشن/خاموش فلش</button>
-        <button class="btn btn-close" onclick="stopScan()">انصراف</button>
+    <div class="scanner-btns">
+        <button class="btn-action" style="background:#f6ad55; color:black;" onclick="toggleFlash()">🔦 فلش</button>
+        <button class="btn-action" style="background:#e53e3e; color:white;" onclick="stopScan()">انصراف</button>
     </div>
 </div>
 
-<div class="container" id="output"></div>
+<div id="output"></div>
 
 <script>
     let slots = [null, null, null, null, null];
     let currentSlot = null;
     let html5QrCode = null;
-    let isFlashOn = false;
+    let flashOn = false;
 
     async function startScan(index) {
         currentSlot = index;
         document.getElementById('scanner-wrapper').style.display = 'block';
+        document.querySelectorAll('.slot-card').forEach(c => c.classList.remove('active'));
+        document.getElementById(`sc${index}`).classList.add('active');
+
         if(!html5QrCode) html5QrCode = new Html5Qrcode("reader");
         
         const config = { fps: 15, qrbox: { width: 250, height: 250 } };
@@ -83,26 +83,23 @@
         html5QrCode.start({ facingMode: "environment" }, config, (decodedText) => {
             handleResult(decodedText);
             stopScan();
-        }).catch(err => alert("خطا در باز کردن دوربین. مطمئن شوید در حالت HTTPS هستید."));
-    }
-
-    function stopScan() {
-        if(html5QrCode && html5QrCode.isScanning) {
-            html5QrCode.stop().then(() => {
-                document.getElementById('scanner-wrapper').style.display = 'none';
-                isFlashOn = false;
-            });
-        } else {
-            document.getElementById('scanner-wrapper').style.display = 'none';
-        }
+        });
     }
 
     function toggleFlash() {
-        if (html5QrCode && html5QrCode.isScanning) {
-            isFlashOn = !isFlashOn;
-            html5QrCode.applyVideoConstraints({
-                advanced: [{ torch: isFlashOn }]
-            }).catch(e => alert("فلش در این مرورگر پشتیبانی نمی‌شود."));
+        if(html5QrCode && html5QrCode.isScanning) {
+            flashOn = !flashOn;
+            html5QrCode.applyVideoConstraints({ advanced: [{ torch: flashOn }] });
+        }
+    }
+
+    function stopScan() {
+        if(html5QrCode) {
+            html5QrCode.stop().then(() => {
+                document.getElementById('scanner-wrapper').style.display = 'none';
+                document.getElementById(`sc${currentSlot}`).classList.remove('active');
+                flashOn = false;
+            });
         }
     }
 
@@ -113,7 +110,7 @@
             document.getElementById(`sc${currentSlot}`).className = "slot-card filled";
             document.getElementById(`u${currentSlot}`).innerText = data.customer.name.substring(0,8);
             render();
-        } catch(e) { alert("کد شناسایی نشد یا فرمت اشتباه است."); }
+        } catch(e) { alert("QR کد نامعتبر است"); }
     }
 
     function render() {
@@ -126,27 +123,26 @@
             Object.keys(data.items).forEach(k => {
                 const it = data.items[k];
                 const title = it.title || it.name;
-                const barcode = it.barcode || it.code || it.id || "000000";
+                const barcode = it.barcode || it.code || it.id || "---";
                 if (!groups[title]) groups[title] = { b: barcode, instances: [] };
                 groups[title].instances.push({ n: data.customer.name, q: it.quantity });
             });
         });
 
-        Object.keys(groups).sort().forEach(title => {
+        Object.keys(groups).forEach(title => {
             const g = groups[title];
-            // لینک جستجوی گوگل برای بارکد
-            const googleSearch = `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(g.b + " " + title)}`;
+            // لینک جستجوی عکس گوگل (ترکیب بارکد و نام برای دقت بیشتر)
+            const googleSearchUrl = `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(g.b + ' ' + title)}`;
             
-            let h = `
-                <div class="product-card">
-                    <div class="product-header">
-                        <div class="p-title">📦 ${title}</div>
-                        <a href="${googleSearch}" target="_blank" class="barcode-link">🔍 بارکد: ${g.b}</a>
-                        <div style="font-size:10px; color:var(--gray); margin-top:5px;">(برای دیدن عکس روی بارکد بزنید)</div>
-                    </div>`;
-            
+            let h = `<div class="product-card">
+                <div class="product-header">
+                    <div style="width:100%">
+                        <b>${title}</b><br>
+                        <a href="${googleSearchUrl}" target="_blank" class="barcode-btn">🔍 مشاهده عکس کالا (${g.b})</a>
+                    </div>
+                </div>`;
             g.instances.forEach(row => {
-                h += `<div class="order-row"><span>👤 ${row.n}</span><div><span class="qty">${row.q}</span> <input type="checkbox" style="margin-right:10px"></div></div>`;
+                h += `<div class="order-row"><span>👤 ${row.n}</span><span class="qty">${row.q}</span></div>`;
             });
             out.innerHTML += h + `</div>`;
         });
