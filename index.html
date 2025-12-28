@@ -3,72 +3,77 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Piker Batch Pro</title>
+    <title>Piker Batch Master</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        :root { --bg: #f0f2f5; --panel: #2d3748; }
-        body { font-family: Tahoma; margin: 0; background: var(--bg); text-align: center; }
-        .header { background: var(--panel); color: white; padding: 20px; position: sticky; top: 0; z-index: 100; }
+        :root { --bg: #f8fafc; --dark: #1a202c; --accent: #3182ce; }
+        body { font-family: Tahoma; margin: 0; background: var(--bg); color: var(--dark); }
+        .header { background: var(--dark); color: white; padding: 15px; position: sticky; top: 0; z-index: 1000; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
         
-        .btn-capture { background: #3182ce; color: white; padding: 15px 30px; border-radius: 12px; font-size: 18px; font-weight: bold; border: none; cursor: pointer; margin: 20px 0; display: inline-block; box-shadow: 0 4px 15px rgba(49,130,206,0.3); }
+        .upload-section { padding: 20px; background: white; border-bottom: 2px solid #e2e8f0; }
+        .btn-scan { background: var(--accent); color: white; padding: 15px 40px; border-radius: 50px; font-weight: bold; border: none; cursor: pointer; box-shadow: 0 4px 15px rgba(49,130,206,0.4); font-size: 16px; }
         input[type="file"] { display: none; }
 
-        .container { padding: 10px; }
-        .product-card { background: white; border-radius: 15px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); overflow: hidden; text-align: right; border: 1px solid #e2e8f0; }
-        .product-header { background: #edf2f7; padding: 12px 15px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #cbd5e0; }
+        .container { padding: 15px; }
+        .product-group { background: white; border-radius: 12px; margin-bottom: 20px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
+        .product-title { background: #edf2f7; padding: 12px 15px; font-weight: bold; font-size: 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #cbd5e0; }
         
-        .customer-row { padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #edf2f7; position: relative; }
-        .customer-row::before { content: ""; position: absolute; right: 0; top: 0; bottom: 0; width: 6px; background: var(--c-color); }
+        .order-line { padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; position: relative; }
+        .order-line::before { content: ""; position: absolute; right: 0; top: 2px; bottom: 2px; width: 6px; border-radius: 0 4px 4px 0; background: var(--order-color); }
         
-        .qty-box { background: var(--panel); color: white; padding: 3px 12px; border-radius: 20px; font-weight: bold; min-width: 30px; text-align: center; }
-        .total-badge { background: #38a169; color: white; padding: 5px 15px; border-radius: 10px; font-size: 1.1em; }
+        .qty-circle { background: var(--dark); color: white; padding: 4px 12px; border-radius: 8px; font-weight: bold; font-size: 16px; }
+        .total-label { background: #38a169; color: white; padding: 4px 12px; border-radius: 8px; font-size: 14px; }
         
-        .status-msg { margin: 10px; font-weight: bold; color: #3182ce; }
-        .checkbox-custom { width: 22px; height: 22px; cursor: pointer; }
+        .checkbox-container { display: flex; align-items: center; gap: 10px; }
+        input[type="checkbox"] { width: 24px; height: 24px; accent-color: #38a169; }
+
+        .status-bar { font-size: 12px; margin-top: 8px; color: #63b3ed; }
     </style>
 </head>
 <body>
 
 <div class="header">
-    <h2>تجمیع هوشمند Piker</h2>
-    <div id="st" class="status-msg">آماده اسکن فاکتورها (Batch Mode)</div>
+    <h3>پنل تجمیع هوشمند کالا</h3>
+    <div id="st" class="status-bar">آماده دریافت فاکتورهای بچ (Batch)</div>
 </div>
 
-<label for="qr-input" class="btn-capture">📸 اسکن فاکتور جدید (QR ۱، ۲ یا ۳)</label>
-<input type="file" id="qr-input" accept="image/*" capture="environment">
+<div class="upload-section">
+    <label for="camera-input" class="btn-scan">📸 اسکن QR فاکتور (هر تعداد)</label>
+    <input type="file" id="camera-input" accept="image/*" capture="environment">
+</div>
 
-<div class="container" id="output"></div>
+<div class="container" id="main-list"></div>
 
 <script>
-    let inventory = {}; // ذخیره کالاها
-    let customerColors = {}; // ذخیره رنگ هر مشتری
-    const colors = ["#3182ce", "#e53e3e", "#38a169", "#d69e2e", "#805ad5", "#319795", "#dd6b20", "#d53f8c"];
+    let inventory = {}; // ساختار: { "نام کالا": { total: 0, orders: [ {name, qty, color} ] } }
+    let customerColors = {};
+    const palette = ["#3182ce", "#e53e3e", "#38a169", "#d69e2e", "#805ad5", "#319795", "#dd6b20", "#d53f8c", "#4a5568", "#2c7a7b"];
     let colorIndex = 0;
 
-    const html5QrCode = new Html5Qrcode("output");
+    const qrScanner = new Html5Qrcode("main-list");
 
-    document.getElementById('qr-input').addEventListener('change', async (e) => {
+    document.getElementById('camera-input').onchange = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
-        document.getElementById('st').innerText = "⏳ در حال پردازش QR...";
+        document.getElementById('st').innerText = "⏳ در حال آنالیز دیتای فاکتور...";
 
         try {
-            const decodedText = await html5QrCode.scanFile(file, true);
-            processBatch(decodedText);
+            const rawText = await qrScanner.scanFile(file, true);
+            processData(rawText);
         } catch (err) {
-            alert("❌ QR پیدا نشد! لطفا عکس واضح‌تری بگیرید.");
-            document.getElementById('st').innerText = "❌ خطا در اسکن";
+            alert("❌ خطا در اسکن! لطفا از فاصله نزدیک‌تر و با نور کافی عکس بگیرید.");
+            document.getElementById('st').innerText = "❌ اسکن ناموفق";
         }
-    });
+    };
 
-    function processBatch(jsonText) {
+    function processData(json) {
         try {
-            const data = JSON.parse(jsonText);
-            const customerName = data.customer.name;
+            const data = JSON.parse(json);
+            const customer = data.customer.name;
             
-            // ۱. اختصاص رنگ ثابت به مشتری (فاکتور)
-            if (!customerColors[customerName]) {
-                customerColors[customerName] = colors[colorIndex % colors.length];
+            // تخصیص رنگ به مشتری جدید
+            if (!customerColors[customer]) {
+                customerColors[customer] = palette[colorIndex % palette.length];
                 colorIndex++;
             }
 
@@ -78,65 +83,60 @@
                 const title = it.title;
                 const qty = parseInt(it.quantity);
 
-                // ۲. تجمیع کالاها (اگر آب هست، همه آب‌ها را اینجا جمع کن)
                 if (!inventory[title]) {
-                    inventory[title] = { total: 0, barcode: it.barcode, price: it.price, rows: [] };
+                    inventory[title] = { total: 0, barcode: it.barcode, price: it.price, orders: [] };
                 }
 
-                // ۳. مدیریت فاکتورهای چند قسمتی:
-                // چک می‌کنیم آیا این مشتری قبلاً همین کالا را در این Batch آورده؟ (برای QR دوم و سوم فاکتور)
-                const existingRow = inventory[title].rows.find(r => r.customer === customerName);
-                
-                if (existingRow) {
-                    // اگر بود، فقط تعداد را به همان ردیف رنگی اضافه کن
-                    existingRow.q += qty;
+                // مدیریت فاکتورهای چند QRی (اگر همان مشتری در این Batch بود، جمع بزن)
+                const existingOrder = inventory[title].orders.find(o => o.name === customer);
+                if (existingOrder) {
+                    existingOrder.q += qty;
                 } else {
-                    // اگر نبود، ردیف جدید با رنگ مخصوص مشتری بساز
-                    inventory[title].rows.push({ customer: customerName, q: qty, color: customerColors[customerName] });
+                    inventory[title].orders.push({ name: customer, q: qty, color: customerColors[customer] });
                 }
                 
                 inventory[title].total += qty;
             });
 
-            document.getElementById('st').innerText = "✅ فاکتور " + customerName + " تجمیع شد.";
+            document.getElementById('st').innerText = "✅ فاکتور " + customer + " با موفقیت به لیست تجمیعی اضافه شد.";
             render();
         } catch (e) {
-            alert("خطا در فرمت دیتای QR");
+            alert("ساختار دیتای QR نامعتبر است.");
         }
     }
 
     function render() {
-        const out = document.getElementById('output');
-        out.innerHTML = '';
+        const listDiv = document.getElementById('main-list');
+        listDiv.innerHTML = '';
 
-        // مرتب سازی الفبایی کالاها برای دسترسی راحت‌تر در لاین‌ها
-        const sortedProducts = Object.keys(inventory).sort();
+        // مرتب‌سازی کالاها (مثلاً روغن‌ها کنار هم، آب‌ها کنار هم)
+        const sortedTitles = Object.keys(inventory).sort();
 
-        sortedProducts.forEach(title => {
-            const p = inventory[title];
+        sortedTitles.forEach(title => {
+            const product = inventory[title];
             let html = `
-                <div class="product-card">
-                    <div class="product-header">
+                <div class="product-group">
+                    <div class="product-title">
                         <div>
-                            <div>📦 ${title}</div>
-                            <div style="font-size:10px; color:#718096;">کد: ${p.barcode || '---'} | قیمت: ${Number(p.price || 0).toLocaleString()}</div>
+                            <span>📦 ${title}</span>
+                            <div style="font-size:10px; color:#718096; font-weight:normal;">کد: ${product.barcode || '---'}</div>
                         </div>
-                        <div class="total-badge">${p.total}</div>
+                        <div class="total-label">مجموع: ${product.total}</div>
                     </div>`;
 
-            p.rows.forEach(row => {
+            product.orders.forEach(ord => {
                 html += `
-                    <div class="customer-row" style="--c-color: ${row.color}">
-                        <span style="font-weight:bold; color:${row.color}">👤 ${row.customer}</span>
-                        <div style="display:flex; align-items:center;">
-                            <span class="qty-box">${row.q}</span>
-                            <input type="checkbox" class="checkbox-custom" style="margin-right:12px;">
+                    <div class="order-line" style="--order-color: ${ord.color}">
+                        <span style="font-weight:bold; color: ${ord.color}">👤 ${ord.name}</span>
+                        <div class="checkbox-container">
+                            <span class="qty-circle">${ord.q}</span>
+                            <input type="checkbox">
                         </div>
                     </div>`;
             });
 
             html += `</div>`;
-            out.innerHTML += html;
+            listDiv.innerHTML += html;
         });
     }
 </script>
