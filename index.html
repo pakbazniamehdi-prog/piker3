@@ -3,112 +3,106 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Piker Stable v5</title>
+    <title>Piker Final Pro</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        body { font-family: Tahoma; background: #f4f7f6; color: #2d3748; text-align: center; margin: 0; }
-        .header { background: #2d3748; color: white; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        .btn-scan { background: #3182ce; color: white; padding: 18px; width: 80%; border-radius: 12px; font-size: 18px; border: none; cursor: pointer; margin: 20px 0; font-weight: bold; }
-        .card { background: white; margin: 15px; border-radius: 12px; text-align: right; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-right: 8px solid #38a169; overflow: hidden; }
-        .card-header { background: #edf2f7; padding: 10px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
-        .sub-info { font-size: 11px; color: #718096; display: block; margin-top: 5px; }
-        .item-row { padding: 10px; display: flex; justify-content: space-between; border-bottom: 1px solid #f1f5f9; }
-        .qty-badge { background: #2d3748; color: white; padding: 2px 8px; border-radius: 8px; }
+        body { font-family: Tahoma; background: #f0f2f5; margin: 0; text-align: center; color: #1a202c; }
+        .header { background: #2d3748; color: white; padding: 25px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
+        .upload-box { margin: 20px; padding: 30px; border: 3px dashed #3182ce; border-radius: 20px; background: white; }
+        .btn-scan { background: #3182ce; color: white; padding: 15px 30px; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer; display: inline-block; }
         input[type="file"] { display: none; }
+        .card { background: white; border-radius: 12px; margin: 15px; text-align: right; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-right: 8px solid #38a169; overflow: hidden; }
+        .card-header { background: #edf2f7; padding: 10px; font-weight: bold; display: flex; justify-content: space-between; }
+        .details { font-size: 11px; color: #718096; margin-top: 5px; }
+        .row { padding: 10px; display: flex; justify-content: space-between; border-bottom: 1px solid #eee; }
+        .badge { background: #2d3748; color: white; padding: 2px 8px; border-radius: 8px; font-weight: bold; }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <h2>سیستم تجمیع فاکتور Piker</h2>
-        <p id="st">آماده اسکن (نسخه اصلاح شده)</p>
+        <h2>سیستم تجمیع Piker (نسخه نهایی)</h2>
+        <p id="st">لطفاً عکس واضح از QR فاکتور بگیرید</p>
     </div>
 
-    <label for="camera-input" class="btn-scan">📸 انتخاب عکس فاکتور</label>
-    <input type="file" id="camera-input" accept="image/*" capture="environment">
+    <div class="upload-box">
+        <label for="camera-input" class="btn-scan">📸 انتخاب عکس فاکتور</label>
+        <input type="file" id="camera-input" accept="image/*" capture="environment">
+    </div>
 
     <div id="list"></div>
 
 <script>
     let inventory = {};
     let scanned = new Set();
-    const html5QrCode = new Html5Qrcode("list");
+    const qrEngine = new Html5Qrcode("list");
 
     document.getElementById('camera-input').onchange = async (e) => {
         const file = e.target.files[0];
         if(!file) return;
-        document.getElementById('st').innerText = "⏳ در حال پردازش...";
+        document.getElementById('st').innerText = "⏳ در حال آنالیز تصویر...";
 
-        html5QrCode.scanFile(file, true)
-        .then(res => process(res))
+        qrEngine.scanFile(file, true)
+        .then(res => processData(res))
         .catch(err => {
-            alert("❌ تصویر واضح نیست یا QR پیدا نشد.");
-            document.getElementById('st').innerText = "❌ خطا در اسکن";
+            alert("❌ QR در عکس تشخیص داده نشد. از نزدیک‌تر و با نور بیشتر عکس بگیرید.");
+            document.getElementById('st').innerText = "❌ خطا در تشخیص تصویر";
         });
     };
 
-    function process(text) {
+    function processData(text) {
         try {
             const data = JSON.parse(text);
             
-            // استخراج نام مشتری
-            let cName = "نامشخص";
-            if(data.customer && data.customer.name) cName = data.customer.name;
-            
-            const orderID = (data.customer && data.customer.orderDate ? data.customer.orderDate : "") + cName;
-            if(scanned.has(orderID)) { alert("فاکتور تکراری!"); return; }
+            // پیدا کردن هوشمند بخش کالاها و نام مشتری
+            const customerName = (data.customer && data.customer.name) ? data.customer.name : "نامشخص";
+            const orderID = (data.customer && data.customer.orderDate) ? data.customer.orderDate + customerName : customerName;
+
+            if(scanned.has(orderID)) { alert("این فاکتور قبلاً اسکن شده است."); return; }
             scanned.add(orderID);
 
-            // پردازش کالاها
-            const items = data.items || {};
+            const items = data.items || data.Items || {};
+            
             Object.keys(items).forEach(key => {
                 const it = items[key];
-                const title = it.title || "بدون عنوان";
-                const qty = parseInt(it.quantity || 0);
-                
-                // تلاش برای خواندن بارکد و قیمت (اگر وجود داشت)
+                const title = it.title || it.Title || "بدون نام";
+                const qty = parseInt(it.quantity || it.qty || 0);
                 const barcode = it.barcode || it.code || "---";
-                const price = it.price || it.fee || it.amount || "0";
+                const price = it.price || it.fee || "0";
 
                 if(!inventory[title]) {
                     inventory[title] = { total: 0, barcode: barcode, price: price, details: [] };
                 }
                 inventory[title].total += qty;
-                inventory[title].details.push({ n: cName, q: qty });
+                inventory[title].details.push({ n: customerName, q: qty });
             });
 
-            document.getElementById('st').innerText = "✅ فاکتور " + cName + " ثبت شد";
+            document.getElementById('st').innerText = "✅ فاکتور " + customerName + " با موفقیت اضافه شد.";
             render();
         } catch(e) {
-            alert("⚠️ خطا در خواندن محتوای QR. مطمئن شوید فرمت فایل درست است.");
+            alert("⚠️ خطا: دیتای داخل QR با این برنامه سازگار نیست.");
+            console.error(e);
         }
     }
 
     function render() {
-        const container = document.getElementById('list');
-        container.innerHTML = '';
+        const div = document.getElementById('list');
+        div.innerHTML = '';
         Object.keys(inventory).forEach(title => {
-            const prod = inventory[title];
-            let html = `
+            const p = inventory[title];
+            let h = `
                 <div class="card">
                     <div class="card-header">
                         <div>
                             <strong>📦 ${title}</strong>
-                            <span class="sub-info">🔍 بارکد: ${prod.barcode} | 💰 قیمت: ${Number(prod.price).toLocaleString()}</span>
+                            <div class="details">کد: ${p.barcode} | قیمت: ${Number(p.price).toLocaleString()}</div>
                         </div>
-                        <div style="font-size: 18px;">کل: ${prod.total}</div>
+                        <div style="font-size: 18px;">کل: ${p.total}</div>
                     </div>`;
-            prod.details.forEach(d => {
-                html += `
-                    <div class="item-row">
-                        <span>👤 ${d.n}</span>
-                        <div>
-                            <span class="qty-badge">${d.q}</span>
-                            <input type="checkbox" style="width:20px;height:20px;margin-right:10px;">
-                        </div>
-                    </div>`;
+            p.details.forEach(d => {
+                h += `<div class="row"><span>👤 ${d.n}</span><div><span class="badge">${d.q}</span> <input type="checkbox" style="width:20px;height:20px;margin-right:10px"></div></div>`;
             });
-            container.innerHTML += html + `</div>`;
+            div.innerHTML += h + `</div>`;
         });
     }
 </script>
