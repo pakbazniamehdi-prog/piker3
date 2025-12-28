@@ -3,302 +3,192 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Piker UI Master PRO</title>
+    <title>Piker UI Master</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
         :root {
-            --bg: #111827;
-            --card-bg: #1f2937;
-            --accent: #3b82f6;
-            --success: #10b981;
-            --text: #f3f4f6;
-            --gray: #9ca3af;
-            --danger: #ef4444;
+            --bg: #1a202c;
+            --card-bg: #2d3748;
+            --accent: #4299e1;
+            --success: #48bb78;
+            --text: #f7fafc;
+            --gray: #a0aec0;
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
             background: var(--bg);
             color: var(--text);
             margin: 0;
             padding: 0;
-            line-height: 1.5;
+            user-select: none;
         }
 
         .header {
-            background: var(--card-bg);
-            padding: 15px;
+            background: linear-gradient(90deg, #2c3e50, #000000);
+            padding: 20px;
             text-align: center;
-            border-bottom: 1px solid #374151;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            position: sticky;
-            top: 0;
-            z-index: 100;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            font-weight: bold;
+            font-size: 20px;
+            letter-spacing: 1px;
         }
 
-        .header h1 {
-            margin: 0;
-            font-size: 18px;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            color: var(--accent);
-        }
-
-        /* بخش جایگاه‌های اسکن (اسلات‌ها) */
-        .slot-section {
+        /* اسلات‌ها به صورت کارتی */
+        .slot-container {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 12px;
+            gap: 10px;
             padding: 15px;
         }
 
         .slot-card {
             background: var(--card-bg);
-            border: 2px dashed #4b5563;
+            border: 2px solid transparent;
             border-radius: 12px;
-            padding: 15px 5px;
+            padding: 12px 5px;
             text-align: center;
             cursor: pointer;
-            transition: all 0.2s ease-in-out;
+            transition: all 0.2s;
+            position: relative;
         }
 
-        .slot-card.filled {
-            border-style: solid;
-            border-color: var(--success);
-            background: rgba(16, 185, 129, 0.1);
-        }
+        .slot-card.active { border-color: var(--accent); transform: translateY(-3px); }
+        .slot-card.filled { background: #22543d; border-color: var(--success); }
 
-        .slot-card.active {
-            border-color: var(--accent);
-            transform: scale(0.98);
-        }
-
-        .slot-card b {
-            display: block;
-            font-size: 20px;
-            margin-bottom: 4px;
-        }
-
-        .slot-card span {
-            font-size: 10px;
-            color: var(--gray);
-            display: block;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
+        .slot-card span { display: block; font-size: 10px; color: var(--gray); margin-top: 5px; }
+        .slot-card b { font-size: 16px; }
 
         input[type="file"] { display: none; }
 
-        /* استایل لیست محصولات */
-        .container {
-            padding: 10px 15px 100px 15px;
-        }
-
+        /* لیست تجمیعی */
+        .container { padding: 10px; }
         .product-card {
             background: var(--card-bg);
             border-radius: 16px;
-            margin-bottom: 20px;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+            margin-bottom: 15px;
             overflow: hidden;
             border-right: 6px solid var(--accent);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
         }
 
         .product-header {
             padding: 15px;
             background: rgba(0,0,0,0.2);
-            border-bottom: 1px solid #374151;
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
         }
 
-        .p-title {
-            font-size: 16px;
-            font-weight: bold;
-        }
+        .p-title { font-size: 16px; font-weight: bold; color: white; }
+        .p-info { font-size: 11px; color: var(--gray); margin-top: 4px; }
 
-        .p-meta {
-            font-size: 11px;
-            color: var(--gray);
-            margin-top: 4px;
-        }
-
-        .p-price {
-            color: var(--success);
-            font-weight: bold;
-            font-size: 14px;
-        }
-
-        /* ردیف سفارش‌های هر مشتری */
         .order-row {
             padding: 12px 15px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
+            border-top: 1px solid rgba(255,255,255,0.05);
             position: relative;
         }
 
         .order-row::after {
             content: "";
             position: absolute;
-            right: 0; top: 10%; bottom: 10%;
+            right: 0; top: 15%; bottom: 15%;
             width: 4px;
             background: var(--c);
-            border-radius: 2px 0 0 2px;
+            border-radius: 2px;
         }
 
-        .customer-info {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .cust-name {
-            font-weight: 600;
-            font-size: 14px;
-        }
-
-        .action-area {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
+        .customer-name { font-weight: 500; font-size: 14px; }
         .qty-badge {
             background: #000;
-            color: #fff;
-            padding: 4px 10px;
-            border-radius: 6px;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 8px;
             font-weight: bold;
-            min-width: 30px;
-            text-align: center;
+            font-family: monospace;
         }
+
+        .price-text { color: var(--success); font-weight: bold; font-size: 13px; }
 
         input[type="checkbox"] {
-            width: 24px;
-            height: 24px;
+            width: 24px; height: 24px;
             accent-color: var(--success);
-        }
-
-        /* دکمه ریست نهایی */
-        .reset-btn {
-            position: fixed;
-            bottom: 20px;
-            left: 20px;
-            right: 20px;
-            background: var(--danger);
-            color: white;
-            border: none;
-            padding: 15px;
-            border-radius: 12px;
-            font-weight: bold;
-            font-size: 16px;
-            box-shadow: 0 4px 14px 0 rgba(239, 68, 68, 0.39);
-        }
-
-        #loading-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.8);
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
+            margin-right: 12px;
         }
     </style>
 </head>
 <body>
 
-<div id="loading-overlay">
-    <div style="font-size: 24px;">⏳</div>
-    <p>در حال پردازش عکس با کیفیت بالا...</p>
-</div>
+<div class="header">PIKER UI MASTER PRO</div>
 
-<div class="header">
-    <h1>PIKER UI MASTER PRO</h1>
-</div>
-
-<div class="slot-section">
+<div class="slot-container">
     <label class="slot-card" id="sc0">
-        <b>1</b><span id="u0">خالی</span>
-        <input type="file" accept="image/*" capture="environment" onchange="processImage(0, this)">
+        <b>۱</b><span id="u0">خالی</span>
+        <input type="file" accept="image/*" capture="environment" onchange="captureHighRes(0, this)">
     </label>
     <label class="slot-card" id="sc1">
-        <b>2</b><span id="u1">خالی</span>
-        <input type="file" accept="image/*" capture="environment" onchange="processImage(1, this)">
+        <b>۲</b><span id="u1">خالی</span>
+        <input type="file" accept="image/*" capture="environment" onchange="captureHighRes(1, this)">
     </label>
     <label class="slot-card" id="sc2">
-        <b>3</b><span id="u2">خالی</span>
-        <input type="file" accept="image/*" capture="environment" onchange="processImage(2, this)">
+        <b>۳</b><span id="u2">خالی</span>
+        <input type="file" accept="image/*" capture="environment" onchange="captureHighRes(2, this)">
     </label>
     <label class="slot-card" id="sc3">
-        <b>4</b><span id="u3">خالی</span>
-        <input type="file" accept="image/*" capture="environment" onchange="processImage(3, this)">
+        <b>۴</b><span id="u3">خالی</span>
+        <input type="file" accept="image/*" capture="environment" onchange="captureHighRes(3, this)">
     </label>
     <label class="slot-card" id="sc4">
-        <b>5</b><span id="u4">خالی</span>
-        <input type="file" accept="image/*" capture="environment" onchange="processImage(4, this)">
+        <b>۵</b><span id="u4">خالی</span>
+        <input type="file" accept="image/*" capture="environment" onchange="captureHighRes(4, this)">
     </label>
-    <div class="slot-card" style="border-color: var(--danger); color: var(--danger);" onclick="confirmReset()">
-        <b>✖</b><span>پاکسازی</span>
-    </div>
+    <div class="slot-card" onclick="location.reload()" style="background:#742a2a"><b>✖</b><span>ریست</span></div>
 </div>
 
-<div class="container" id="main-list">
-    <p style="text-align:center; color: var(--gray); margin-top: 50px;">فاکتورها را اسکن کنید تا لیست کالاها ظاهر شود.</p>
-</div>
+<div id="loading" style="display:none; color:var(--accent); margin:10px;">⏳ در حال آنالیز تصویر با کیفیت بالا...</div>
 
-<div id="qr-engine-hidden" style="display:none"></div>
+<div class="container" id="output"></div>
 
 <script>
     let slots = [null, null, null, null, null];
-    const colors = ["#3b82f6", "#ef4444", "#10b981", "#f59e0b", "#8b5cf6"];
-    const engine = new Html5Qrcode("qr-engine-hidden");
+    const colors = ["#4299e1", "#f56565", "#48bb78", "#ecc94b", "#9f7aea"];
+    const engine = new Html5Qrcode("output");
 
-    async function processImage(index, input) {
+    async function captureHighRes(index, input) {
         const file = input.files[0];
         if (!file) return;
 
-        const overlay = document.getElementById('loading-overlay');
-        const card = document.getElementById(`sc${index}`);
-        
-        overlay.style.display = 'flex';
-        card.classList.add('active');
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById(`sc${index}`).classList.add('active');
 
-        // استفاده از قدرت کامل دوربین برای اسکن فایل (بسیار دقیق‌تر برای کاغذ)
+        // پردازش تصویر با الگوریتم اسکن فایل (بسیار دقیق‌تر از زنده)
         engine.scanFile(file, true)
         .then(decodedText => {
             const data = JSON.parse(decodedText);
             slots[index] = data;
-            
-            card.className = "slot-card filled";
-            document.getElementById(`u${index}`).innerText = data.customer.name;
-            overlay.style.display = 'none';
-            
-            // پخش صدای تایید
-            new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play();
-            
+            document.getElementById(`sc${index}`).className = "slot-card filled";
+            document.getElementById(`u${index}`).innerText = data.customer.name.substring(0, 8);
+            document.getElementById('loading').style.display = 'none';
             render();
         })
         .catch(err => {
-            overlay.style.display = 'none';
-            card.classList.remove('active');
-            alert("❌ خطا: عکس واضح نبود یا QR پیدا نشد. لطفا با نور بیشتر و فوکوس دقیق‌تر عکس بگیرید.");
+            alert("❌ خطای اسکن: تصویر واضح نیست یا QR پیدا نشد.");
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById(`sc${index}`).classList.remove('active');
         });
     }
 
-    function getVal(obj, keys) {
-        for (let k of keys) {
-            if (obj[k] !== undefined && obj[k] !== null) return obj[k];
-        }
+    function findVal(obj, keys) {
+        for (let k of keys) if (obj[k] !== undefined) return obj[k];
         return '---';
     }
 
     function render() {
-        const listArea = document.getElementById('main-list');
-        listArea.innerHTML = '';
+        const out = document.getElementById('output');
+        out.innerHTML = '';
         let groups = {};
 
         slots.forEach((data, sIdx) => {
@@ -308,59 +198,42 @@
             
             Object.keys(items).forEach(k => {
                 const it = items[k];
-                const title = it.title || it.name || "کالای بدون نام";
-                const barcode = getVal(it, ['barcode', 'code', 'id', 'Barcode', 'sku']);
-                const price = getVal(it, ['price', 'fee', 'amount', 'Price', 'Fee']);
+                const title = it.title || it.name;
+                const barcode = findVal(it, ['barcode', 'code', 'id']);
+                const price = findVal(it, ['price', 'fee', 'amount']);
 
                 if (!groups[title]) {
-                    groups[title] = { b: barcode, p: price, rows: [] };
+                    groups[title] = { b: barcode, p: price, instances: [] };
                 }
-                groups[title].rows.push({ n: customer, q: it.quantity, c: colors[sIdx] });
+                groups[title].instances.push({ n: customer, q: it.quantity, c: colors[sIdx] });
             });
         });
 
-        const sortedKeys = Object.keys(groups).sort();
-        if (sortedKeys.length === 0) {
-            listArea.innerHTML = '<p style="text-align:center; color: var(--gray); margin-top: 50px;">لیست خالی است.</p>';
-            return;
-        }
-
-        sortedKeys.forEach(title => {
+        Object.keys(groups).sort().forEach(title => {
             const g = groups[title];
-            let html = `
+            let h = `
                 <div class="product-card">
                     <div class="product-header">
                         <div>
                             <div class="p-title">📦 ${title}</div>
-                            <div class="p-meta">بارکد: ${g.b}</div>
+                            <div class="p-info">کد کالا: ${g.b}</div>
                         </div>
-                        <div class="p-price">${isNaN(g.p) ? g.p : Number(g.p).toLocaleString() + ' ریال'}</div>
+                        <div class="price-text">${isNaN(g.p) ? g.p : Number(g.p).toLocaleString()}</div>
                     </div>`;
-
-            g.rows.forEach(row => {
-                html += `
+            
+            g.instances.forEach(row => {
+                h += `
                     <div class="order-row" style="--c: ${row.c}">
-                        <div class="customer-info">
-                            <span class="cust-name" style="color: ${row.c}">${row.n}</span>
-                        </div>
-                        <div class="action-area">
+                        <span class="customer-name" style="color:${row.c}">${row.n}</span>
+                        <div style="display:flex; align-items:center;">
                             <span class="qty-badge">${row.q}</span>
                             <input type="checkbox">
                         </div>
                     </div>`;
             });
-
-            html += `</div>`;
-            listArea.innerHTML += html;
+            out.innerHTML += h + `</div>`;
         });
     }
-
-    function confirmReset() {
-        if (confirm("آیا می‌خواهید تمام اسکن‌ها پاک شوند؟")) {
-            location.reload();
-        }
-    }
 </script>
-
 </body>
 </html>
