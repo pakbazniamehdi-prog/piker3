@@ -3,46 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Piker UI Master - Reporting</title>
+    <title>Piker Master PRO (Google Sheets Sync)</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
         :root { --bg: #1a202c; --card-bg: #2d3748; --accent: #4299e1; --success: #48bb78; --text: #f7fafc; --gray: #a0aec0; }
-        body { font-family: sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 0; user-select: none; }
-        .header { background: linear-gradient(90deg, #2c3e50, #000); padding: 20px; text-align: center; font-weight: bold; font-size: 18px; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 0; user-select: none; }
+        .header { background: linear-gradient(90deg, #2c3e50, #000); padding: 15px; text-align: center; font-weight: bold; border-bottom: 2px solid var(--accent); }
         
-        /* بخش ورود نام */
         .piker-info { background: #2d3748; padding: 15px; margin: 10px; border-radius: 12px; border: 1px dashed var(--accent); }
-        input#pikerName { width: 100%; padding: 10px; border-radius: 8px; border: none; outline: none; background: #1a202c; color: white; box-sizing: border-box; }
+        input#pikerName { width: 100%; padding: 12px; border-radius: 8px; border: none; background: #1a202c; color: white; box-sizing: border-box; font-size: 15px; }
 
         .slot-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 15px; }
-        .slot-card { background: var(--card-bg); border: 2px solid transparent; border-radius: 12px; padding: 12px 5px; text-align: center; cursor: pointer; position: relative; }
-        .slot-card.active { border-color: var(--accent); }
+        .slot-card { background: var(--card-bg); border: 2px solid transparent; border-radius: 12px; padding: 12px 5px; text-align: center; cursor: pointer; transition: 0.2s; position: relative; }
+        .slot-card.active { border-color: var(--accent); transform: translateY(-3px); }
         .slot-card.filled { background: #22543d; border-color: var(--success); }
         input[type="file"] { display: none; }
 
         .container { padding: 10px; }
-        .product-card { background: var(--card-bg); border-radius: 16px; margin-bottom: 15px; overflow: hidden; border-right: 6px solid var(--accent); }
-        .product-header { padding: 15px; background: rgba(0,0,0,0.2); display: flex; justify-content: space-between; align-items: flex-start; }
-        .p-info { font-size: 12px; color: var(--accent); margin-top: 6px; text-decoration: underline; font-weight: bold; cursor: pointer; }
+        .product-card { background: var(--card-bg); border-radius: 16px; margin-bottom: 15px; overflow: hidden; border-right: 6px solid var(--accent); box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        .product-header { padding: 12px; background: rgba(0,0,0,0.2); display: flex; justify-content: space-between; align-items: flex-start; }
+        .p-info { font-size: 12px; color: var(--accent); margin-top: 5px; text-decoration: underline; font-weight: bold; cursor: pointer; }
 
-        /* دکمه گزارش */
-        .report-btn { background: #38a169; color: white; border: none; padding: 15px; width: calc(100% - 20px); margin: 10px; border-radius: 12px; font-weight: bold; font-size: 16px; cursor: pointer; display: none; }
+        .order-row { padding: 10px 15px; display: flex; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.05); }
+        .qty-badge { background: #000; color: white; padding: 3px 10px; border-radius: 6px; font-weight: bold; }
 
-        .order-row { padding: 12px 15px; display: flex; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.05); position: relative; }
-        .order-row::after { content: ""; position: absolute; right: 0; top: 15%; bottom: 15%; width: 4px; background: var(--c); border-radius: 2px; }
-        .qty-badge { background: #000; color: white; padding: 4px 12px; border-radius: 8px; font-weight: bold; }
+        .report-btn { background: var(--success); color: white; border: none; padding: 16px; width: calc(100% - 20px); margin: 10px; border-radius: 12px; font-weight: bold; font-size: 16px; cursor: pointer; display: none; box-shadow: 0 5px 15px rgba(72, 187, 120, 0.4); }
+        .report-btn:disabled { background: #4a5568; cursor: not-allowed; opacity: 0.7; }
+        
+        #loading { text-align: center; color: var(--accent); padding: 10px; display: none; }
     </style>
 </head>
 <body>
 
-<div class="header">پنل پیکر (نسخه گزارش‌دهی)</div>
+<div class="header">پنل هوشمند انبار (متصل به شیت)</div>
 
 <div class="piker-info">
-    <label style="font-size: 12px; color: var(--gray);">نام پیکر را وارد کنید:</label>
-    <input type="text" id="pikerName" placeholder="مثلاً: علی رضایی" oninput="checkName()">
+    <label style="font-size: 11px; color: var(--gray); display: block; margin-bottom: 5px;">نام پیکر را برای شروع وارد کنید:</label>
+    <input type="text" id="pikerName" placeholder="مثلاً: رضا احمدی" oninput="checkName()">
 </div>
 
-<div class="slot-container" id="mainSlots" style="opacity: 0.5; pointer-events: none;">
+<div class="slot-container" id="mainSlots" style="opacity: 0.4; pointer-events: none;">
     <label class="slot-card" id="sc0"><b>۱</b><span id="u0">خالی</span><input type="file" accept="image/*" capture="environment" onchange="captureHighRes(0, this)"></label>
     <label class="slot-card" id="sc1"><b>۲</b><span id="u1">خالی</span><input type="file" accept="image/*" capture="environment" onchange="captureHighRes(1, this)"></label>
     <label class="slot-card" id="sc2"><b>۳</b><span id="u2">خالی</span><input type="file" accept="image/*" capture="environment" onchange="captureHighRes(2, this)"></label>
@@ -51,24 +51,22 @@
     <div class="slot-card" onclick="location.reload()" style="background:#742a2a"><b>✖</b><span>ریست</span></div>
 </div>
 
-<div id="loading" style="display:none; color:var(--accent); text-align:center;">⏳ در حال اسکن تصویر...</div>
+<div id="loading">⏳ در حال پردازش تصویر...</div>
 
 <div class="container" id="output"></div>
 
-<button id="sendReport" class="report-btn" onclick="sendToManagement()">📤 ارسال گزارش عملکرد به مدیریت</button>
+<button id="sendBtn" class="report-btn" onclick="sendToGoogle()">📊 ثبت عملکرد در Google Sheet</button>
 
 <script>
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzKh3FKGPF_Tj6jLzlzGMpmx8KgjJNdOZGpptg8AgI9pLclCUyLoOccyBXbKqh-EaS-/exec';
     let slots = [null, null, null, null, null];
-    const colors = ["#4299e1", "#f56565", "#48bb78", "#ecc94b", "#9f7aea"];
     const engine = new Html5Qrcode("output");
 
     function checkName() {
         const name = document.getElementById('pikerName').value;
-        const slotsDiv = document.getElementById('mainSlots');
         if(name.length > 2) {
-            slotsDiv.style.opacity = "1";
-            slotsDiv.style.pointer_events = "auto";
-            slotsDiv.style.pointerEvents = "auto";
+            document.getElementById('mainSlots').style.opacity = "1";
+            document.getElementById('mainSlots').style.pointerEvents = "auto";
         }
     }
 
@@ -76,59 +74,72 @@
         const file = input.files[0];
         if (!file) return;
         document.getElementById('loading').style.display = 'block';
+        
         engine.scanFile(file, true).then(decodedText => {
             slots[index] = JSON.parse(decodedText);
             document.getElementById(`sc${index}`).className = "slot-card filled";
             document.getElementById(`u${index}`).innerText = slots[index].customer.name.substring(0, 8);
             document.getElementById('loading').style.display = 'none';
-            document.getElementById('sendReport').style.display = 'block';
+            document.getElementById('sendBtn').style.display = 'block';
             render();
-        }).catch(() => { alert("خطا در اسکن"); document.getElementById('loading').style.display = 'none'; });
+        }).catch(() => {
+            alert("❌ QR شناسایی نشد. تصویر واضح‌تری بگیرید.");
+            document.getElementById('loading').style.display = 'none';
+        });
     }
 
     function render() {
         const out = document.getElementById('output');
         out.innerHTML = '';
         let groups = {};
-        slots.forEach((data, sIdx) => {
-            if (!data) return;
-            Object.keys(data.items).forEach(k => {
-                const it = data.items[k];
+        slots.forEach((s) => {
+            if (!s) return;
+            Object.values(s.items).forEach(it => {
                 const title = it.title || it.name;
                 const barcode = it.barcode || it.code || '---';
                 if (!groups[title]) groups[title] = { b: barcode, instances: [] };
-                groups[title].instances.push({ n: data.customer.name, q: it.quantity, c: colors[sIdx] });
+                groups[title].instances.push({ n: s.customer.name, q: it.quantity });
             });
         });
         Object.keys(groups).sort().forEach(title => {
             const g = groups[title];
             const googleUrl = `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(g.b + " " + title)}`;
             let h = `<div class="product-card"><div class="product-header"><div><b>📦 ${title}</b><br><div class="p-info" onclick="window.open('${googleUrl}','_blank')">🔍 بارکد: ${g.b}</div></div></div>`;
-            g.instances.forEach(row => { h += `<div class="order-row" style="--c: ${row.c}"><span style="color:${row.c}">${row.n}</span><span class="qty-badge">${row.q}</span></div>`; });
+            g.instances.forEach(row => { h += `<div class="order-row"><span>👤 ${row.n}</span><span class="qty-badge">${row.q}</span></div>`; });
             out.innerHTML += h + `</div>`;
         });
     }
 
-    function sendToManagement() {
+    function sendToGoogle() {
         const name = document.getElementById('pikerName').value;
+        const btn = document.getElementById('sendBtn');
         let totalItems = 0;
-        let totalOrders = slots.filter(s => s !== null).length;
-        
-        let detailText = `گزارش عملکرد انبار\n👤 پیکر: ${name}\n📦 تعداد فاکتور: ${totalOrders}\n------------------\n`;
+        let orders = slots.filter(s => s !== null).length;
         
         slots.forEach(s => {
-            if(s) {
-                detailText += `🔹 مشتری: ${s.customer.name}\n`;
-                Object.values(s.items).forEach(it => {
-                    detailText += ` - ${it.title} (${it.quantity} عدد)\n`;
-                    totalItems += parseInt(it.quantity);
-                });
-            }
+            if(s) Object.values(s.items).forEach(it => totalItems += parseInt(it.quantity));
         });
 
-        detailText += `\n------------------\n✅ مجموع کالاها: ${totalItems} قلم`;
-        const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(detailText)}`;
-        window.open(whatsappUrl, '_blank');
+        if(orders === 0) return alert("ابتدا حداقل یک فاکتور را اسکن کنید.");
+
+        btn.disabled = true;
+        btn.innerText = "⏳ در حال ارسال...";
+
+        const payload = { pikerName: name, totalItems: totalItems, orderCount: orders };
+
+        fetch(SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        }).then(() => {
+            alert(`✅ عملکرد ثبت شد!\nپیکر: ${name}\nجمع اقلام: ${totalItems}`);
+            location.reload();
+        }).catch(e => {
+            alert("خطا در ارسال. اینترنت را چک کنید.");
+            btn.disabled = false;
+            btn.innerText = "📊 ثبت عملکرد در Google Sheet";
+        });
     }
 </script>
 </body>
