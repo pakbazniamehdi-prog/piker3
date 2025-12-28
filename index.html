@@ -3,137 +3,73 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Piker UI Master + Image</title>
+    <title>Piker UI Master + Online Image</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
         :root {
-            --bg: #1a202c;
-            --card-bg: #2d3748;
-            --accent: #4299e1;
-            --success: #48bb78;
-            --text: #f7fafc;
-            --gray: #a0aec0;
+            --bg: #1a202c; --card-bg: #2d3748; --accent: #4299e1;
+            --success: #48bb78; --text: #f7fafc; --gray: #a0aec0;
         }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            margin: 0;
-            padding: 0;
-            user-select: none;
-        }
-
-        .header {
-            background: linear-gradient(90deg, #2c3e50, #000000);
-            padding: 15px;
-            text-align: center;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-            font-weight: bold;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-
-        .slot-container {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            padding: 15px;
-        }
-
-        .slot-card {
-            background: var(--card-bg);
-            border: 2px solid transparent;
-            border-radius: 12px;
-            padding: 12px 5px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 0; user-select: none; }
+        .header { background: linear-gradient(90deg, #2c3e50, #000000); padding: 15px; text-align: center; font-weight: bold; font-size: 18px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        
+        .slot-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 15px; }
+        .slot-card { background: var(--card-bg); border: 2px solid transparent; border-radius: 12px; padding: 12px 5px; text-align: center; cursor: pointer; transition: 0.2s; }
         .slot-card.active { border-color: var(--accent); transform: translateY(-3px); }
         .slot-card.filled { background: #22543d; border-color: var(--success); }
         .slot-card span { display: block; font-size: 10px; color: var(--gray); margin-top: 5px; }
         
         input[type="file"] { display: none; }
+        .container { padding: 10px; }
 
-        .container { padding: 10px; padding-bottom: 50px; }
-        
         .product-card {
-            background: var(--card-bg);
-            border-radius: 16px;
-            margin-bottom: 15px;
-            overflow: hidden;
-            border-right: 6px solid var(--accent);
-            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.3);
+            background: var(--card-bg); border-radius: 16px; margin-bottom: 15px;
+            overflow: hidden; border-right: 6px solid var(--accent);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
         }
 
         .product-header {
-            padding: 12px;
-            background: rgba(0,0,0,0.2);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            padding: 12px; background: rgba(0,0,0,0.2);
+            display: flex; justify-content: space-between; align-items: center;
         }
 
-        .p-thumb {
-            width: 55px;
-            height: 55px;
-            border-radius: 10px;
-            object-fit: cover;
-            margin-left: 12px;
-            background: #1a202c;
-            border: 1px solid #4a5568;
+        /* استایل عکس کالا */
+        .product-img {
+            width: 55px; height: 55px; border-radius: 10px;
+            object-fit: cover; background: #1a202c;
+            border: 1px solid var(--gray); margin-left: 12px;
         }
 
+        .p-info-box { display: flex; align-items: center; }
         .p-title { font-size: 15px; font-weight: bold; color: white; }
-        .p-info { font-size: 11px; color: var(--gray); }
+        .p-sku { font-size: 11px; color: var(--gray); }
 
         .order-row {
-            padding: 10px 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-top: 1px solid rgba(255,255,255,0.05);
+            padding: 12px 15px; display: flex; justify-content: space-between;
+            align-items: center; border-top: 1px solid rgba(255,255,255,0.05);
             position: relative;
         }
-
-        .order-row::after {
-            content: "";
-            position: absolute;
-            right: 0; top: 15%; bottom: 15%;
-            width: 4px;
-            background: var(--c);
-        }
-
-        .qty-badge {
-            background: #000;
-            color: white;
-            padding: 3px 10px;
-            border-radius: 6px;
-            font-weight: bold;
-            font-size: 14px;
-        }
-
+        .order-row::after { content: ""; position: absolute; right: 0; top: 15%; bottom: 15%; width: 4px; background: var(--c); }
+        
+        .qty-badge { background: #000; color: white; padding: 4px 12px; border-radius: 8px; font-weight: bold; }
         .price-text { color: var(--success); font-weight: bold; font-size: 13px; }
-        input[type="checkbox"] { width: 22px; height: 22px; accent-color: var(--success); }
+        input[type="checkbox"] { width: 22px; height: 22px; accent-color: var(--success); margin-right: 12px; }
     </style>
 </head>
 <body>
 
-<div class="header">PIKER MASTER + IMG</div>
+<div class="header">PIKER UI MASTER + IMAGE</div>
 
 <div class="slot-container">
-    <label class="slot-card" id="sc0"><b>1</b><span id="u0">خالی</span><input type="file" accept="image/*" onchange="captureHighRes(0, this)"></label>
-    <label class="slot-card" id="sc1"><b>2</b><span id="u1">خالی</span><input type="file" accept="image/*" onchange="captureHighRes(1, this)"></label>
-    <label class="slot-card" id="sc2"><b>3</b><span id="u2">خالی</span><input type="file" accept="image/*" onchange="captureHighRes(2, this)"></label>
-    <label class="slot-card" id="sc3"><b>4</b><span id="u3">خالی</span><input type="file" accept="image/*" onchange="captureHighRes(3, this)"></label>
-    <label class="slot-card" id="sc4"><b>5</b><span id="u4">خالی</span><input type="file" accept="image/*" onchange="captureHighRes(4, this)"></label>
-    <div class="slot-card" onclick="location.reload()" style="background:#742a2a"><b>✖</b><span>پاکسازی</span></div>
+    <label class="slot-card" id="sc0"><b>۱</b><span id="u0">خالی</span><input type="file" accept="image/*" capture="environment" onchange="captureHighRes(0, this)"></label>
+    <label class="slot-card" id="sc1"><b>۲</b><span id="u1">خالی</span><input type="file" accept="image/*" capture="environment" onchange="captureHighRes(1, this)"></label>
+    <label class="slot-card" id="sc2"><b>۳</b><span id="u2">خالی</span><input type="file" accept="image/*" capture="environment" onchange="captureHighRes(2, this)"></label>
+    <label class="slot-card" id="sc3"><b>۴</b><span id="u3">خالی</span><input type="file" accept="image/*" capture="environment" onchange="captureHighRes(3, this)"></label>
+    <label class="slot-card" id="sc4"><b>۵</b><span id="u4">خالی</span><input type="file" accept="image/*" capture="environment" onchange="captureHighRes(4, this)"></label>
+    <div class="slot-card" onclick="location.reload()" style="background:#742a2a"><b>✖</b><span>ریست</span></div>
 </div>
 
-<div id="loading" style="display:none; text-align:center; padding:10px;">⏳ در حال آنالیز کالا و جستجوی عکس...</div>
+<div id="loading" style="display:none; color:var(--accent); text-align:center; padding:10px;">⏳ در حال پردازش و جستجوی تصویر...</div>
 
 <div class="container" id="output"></div>
 
@@ -157,7 +93,7 @@
             render();
         })
         .catch(err => {
-            alert("اسکن نشد! دوباره تلاش کنید.");
+            alert("❌ خطای اسکن: تصویر واضح نیست.");
             document.getElementById('loading').style.display = 'none';
         });
     }
@@ -174,11 +110,8 @@
 
         slots.forEach((data, sIdx) => {
             if (!data) return;
-            const customer = data.customer.name;
-            const items = data.items;
-            
-            Object.keys(items).forEach(k => {
-                const it = items[k];
+            Object.keys(data.items).forEach(k => {
+                const it = data.items[k];
                 const title = it.title || it.name;
                 const barcode = findVal(it, ['barcode', 'code', 'id']);
                 const price = findVal(it, ['price', 'fee', 'amount']);
@@ -186,23 +119,23 @@
                 if (!groups[title]) {
                     groups[title] = { b: barcode, p: price, instances: [] };
                 }
-                groups[title].instances.push({ n: customer, q: it.quantity, c: colors[sIdx] });
+                groups[title].instances.push({ n: data.customer.name, q: it.quantity, c: colors[sIdx] });
             });
         });
 
         Object.keys(groups).sort().forEach(title => {
             const g = groups[title];
-            // استفاده از سرویس Unsplash برای جستجوی تصویر بر اساس نام کالا
-            const imgSearchUrl = `https://source.unsplash.com/100x100/?product,${encodeURIComponent(title)}`;
-            
+            // استفاده از کلمات کلیدی نام کالا برای جستجوی عکس
+            const imgUrl = `https://source.unsplash.com/100x100/?product,${encodeURIComponent(title)}`;
+
             let h = `
                 <div class="product-card">
                     <div class="product-header">
-                        <div style="display:flex; align-items:center;">
-                            <img src="${imgSearchUrl}" class="p-thumb" onerror="this.src='https://via.placeholder.com/100?text=📦'">
+                        <div class="p-info-box">
+                            <img src="${imgUrl}" class="product-img" onerror="this.src='https://via.placeholder.com/100?text=📦'">
                             <div>
                                 <div class="p-title">${title}</div>
-                                <div class="p-info">کد: ${g.b}</div>
+                                <div class="p-sku">کد: ${g.b}</div>
                             </div>
                         </div>
                         <div class="price-text">${isNaN(g.p) ? g.p : Number(g.p).toLocaleString()}</div>
@@ -214,7 +147,7 @@
                         <span style="color:${row.c}; font-weight:bold;">👤 ${row.n}</span>
                         <div style="display:flex; align-items:center;">
                             <span class="qty-badge">${row.q}</span>
-                            <input type="checkbox" style="margin-right:10px">
+                            <input type="checkbox">
                         </div>
                     </div>`;
             });
