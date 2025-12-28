@@ -3,99 +3,192 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Piker UI Master (Barcode Search)</title>
+    <title>Piker UI Master</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        :root { --bg: #1a202c; --card-bg: #2d3748; --accent: #4299e1; --text: #f7fafc; }
-        body { font-family: sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 0; }
-        .header { background: #000; padding: 15px; text-align: center; font-weight: bold; }
-        
-        .slot-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 15px; }
-        .slot-card { background: var(--card-bg); border: 2px solid transparent; border-radius: 12px; padding: 15px 5px; text-align: center; cursor: pointer; }
-        .slot-card.active { border-color: var(--accent); background: #2c5282; }
-        .slot-card.filled { border-color: #48bb78; background: #22543d; }
-
-        #scanner-wrapper { display: none; padding: 10px; background: #000; position: relative; }
-        #reader { width: 100%; border-radius: 12px; overflow: hidden; }
-        .close-scanner { background: #e53e3e; color: white; padding: 12px; text-align: center; border-radius: 8px; margin-top: 10px; cursor: pointer; font-weight: bold; }
-
-        .product-card { background: var(--card-bg); border-radius: 15px; margin: 15px; overflow: hidden; border-right: 5px solid var(--accent); box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
-        .product-header { padding: 15px; background: rgba(0,0,0,0.2); }
-        
-        /* استایل جدید بارکد برای کلیک */
-        .barcode-link { 
-            color: #63b3ed; 
-            text-decoration: underline; 
-            font-weight: bold; 
-            font-family: monospace; 
-            font-size: 14px;
-            cursor: pointer;
-            display: inline-block;
-            margin-top: 5px;
+        :root {
+            --bg: #1a202c;
+            --card-bg: #2d3748;
+            --accent: #4299e1;
+            --success: #48bb78;
+            --text: #f7fafc;
+            --gray: #a0aec0;
         }
 
-        .order-row { padding: 10px 15px; display: flex; justify-content: space-between; border-top: 1px solid #4a5568; }
-        .qty { background: #000; padding: 2px 8px; border-radius: 5px; font-weight: bold; }
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        .header {
+            background: linear-gradient(90deg, #2c3e50, #000000);
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            font-weight: bold;
+            font-size: 20px;
+            letter-spacing: 1px;
+        }
+
+        .slot-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            padding: 15px;
+        }
+
+        .slot-card {
+            background: var(--card-bg);
+            border: 2px solid transparent;
+            border-radius: 12px;
+            padding: 12px 5px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .slot-card.active { border-color: var(--accent); transform: translateY(-3px); }
+        .slot-card.filled { background: #22543d; border-color: var(--success); }
+        .slot-card span { display: block; font-size: 10px; color: var(--gray); margin-top: 5px; }
+        .slot-card b { font-size: 16px; }
+
+        input[type="file"] { display: none; }
+
+        .container { padding: 10px; }
+        .product-card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            margin-bottom: 15px;
+            overflow: hidden;
+            border-right: 6px solid var(--accent);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+        }
+
+        .product-header {
+            padding: 15px;
+            background: rgba(0,0,0,0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .p-title { font-size: 16px; font-weight: bold; color: white; }
+        
+        /* استایل بارکد کلیک‌شونده */
+        .p-info { 
+            font-size: 12px; 
+            color: var(--accent); 
+            margin-top: 6px; 
+            text-decoration: underline; 
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .order-row {
+            padding: 12px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid rgba(255,255,255,0.05);
+            position: relative;
+        }
+
+        .order-row::after {
+            content: "";
+            position: absolute;
+            right: 0; top: 15%; bottom: 15%;
+            width: 4px;
+            background: var(--c);
+            border-radius: 2px;
+        }
+
+        .customer-name { font-weight: 500; font-size: 14px; }
+        .qty-badge {
+            background: #000;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-family: monospace;
+        }
+
+        .price-text { color: var(--success); font-weight: bold; font-size: 13px; }
+
+        input[type="checkbox"] {
+            width: 24px; height: 24px;
+            accent-color: var(--success);
+            margin-right: 12px;
+        }
     </style>
 </head>
 <body>
 
-<div class="header">PIKER MASTER (BARCODE SEARCH)</div>
+<div class="header">PIKER UI MASTER PRO</div>
 
 <div class="slot-container">
-    <div class="slot-card" id="sc0" onclick="startScan(0)"><b>۱</b><span id="u0">خالی</span></div>
-    <div class="slot-card" id="sc1" onclick="startScan(1)"><b>۲</b><span id="u1">خالی</span></div>
-    <div class="slot-card" id="sc2" onclick="startScan(2)"><b>۳</b><span id="u2">خالی</span></div>
-    <div class="slot-card" id="sc3" onclick="startScan(3)"><b>۴</b><span id="u3">خالی</span></div>
-    <div class="slot-card" id="sc4" onclick="startScan(4)"><b>۵</b><span id="u4">خالی</span></div>
+    <label class="slot-card" id="sc0">
+        <b>۱</b><span id="u0">خالی</span>
+        <input type="file" accept="image/*" capture="environment" onchange="captureHighRes(0, this)">
+    </label>
+    <label class="slot-card" id="sc1">
+        <b>۲</b><span id="u1">خالی</span>
+        <input type="file" accept="image/*" capture="environment" onchange="captureHighRes(1, this)">
+    </label>
+    <label class="slot-card" id="sc2">
+        <b>۳</b><span id="u2">خالی</span>
+        <input type="file" accept="image/*" capture="environment" onchange="captureHighRes(2, this)">
+    </label>
+    <label class="slot-card" id="sc3">
+        <b>۴</b><span id="u3">خالی</span>
+        <input type="file" accept="image/*" capture="environment" onchange="captureHighRes(3, this)">
+    </label>
+    <label class="slot-card" id="sc4">
+        <b>۵</b><span id="u4">خالی</span>
+        <input type="file" accept="image/*" capture="environment" onchange="captureHighRes(4, this)">
+    </label>
     <div class="slot-card" onclick="location.reload()" style="background:#742a2a"><b>✖</b><span>ریست</span></div>
 </div>
 
-<div id="scanner-wrapper">
-    <div id="reader"></div>
-    <div class="close-scanner" onclick="stopScan()">انصراف</div>
-</div>
+<div id="loading" style="display:none; color:var(--accent); margin:10px;">⏳ در حال آنالیز تصویر با کیفیت بالا...</div>
 
-<div id="output"></div>
+<div class="container" id="output"></div>
 
 <script>
     let slots = [null, null, null, null, null];
-    let currentSlot = null;
-    let html5QrCode = null;
+    const colors = ["#4299e1", "#f56565", "#48bb78", "#ecc94b", "#9f7aea"];
+    const engine = new Html5Qrcode("output");
 
-    async function startScan(index) {
-        currentSlot = index;
-        document.getElementById('scanner-wrapper').style.display = 'block';
-        document.querySelectorAll('.slot-card').forEach(c => c.classList.remove('active'));
+    async function captureHighRes(index, input) {
+        const file = input.files[0];
+        if (!file) return;
+
+        document.getElementById('loading').style.display = 'block';
         document.getElementById(`sc${index}`).classList.add('active');
 
-        if(!html5QrCode) html5QrCode = new Html5Qrcode("reader");
-        
-        const config = { fps: 10, qrbox: { width: 250, height: 250 } };
-        
-        html5QrCode.start({ facingMode: "environment" }, config, (decodedText) => {
-            handleResult(decodedText);
-            stopScan();
+        engine.scanFile(file, true)
+        .then(decodedText => {
+            const data = JSON.parse(decodedText);
+            slots[index] = data;
+            document.getElementById(`sc${index}`).className = "slot-card filled";
+            document.getElementById(`u${index}`).innerText = data.customer.name.substring(0, 8);
+            document.getElementById('loading').style.display = 'none';
+            render();
+        })
+        .catch(err => {
+            alert("❌ خطای اسکن: تصویر واضح نیست یا QR پیدا نشد.");
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById(`sc${index}`).classList.remove('active');
         });
     }
 
-    function stopScan() {
-        if(html5QrCode) {
-            html5QrCode.stop().then(() => {
-                document.getElementById('scanner-wrapper').style.display = 'none';
-                document.getElementById(`sc${currentSlot}`).classList.remove('active');
-            });
-        }
-    }
-
-    function handleResult(text) {
-        try {
-            const data = JSON.parse(text);
-            slots[currentSlot] = data;
-            document.getElementById(`sc${currentSlot}`).className = "slot-card filled";
-            document.getElementById(`u${currentSlot}`).innerText = data.customer.name.substring(0,8);
-            render();
-        } catch(e) { alert("QR کد نامعتبر است"); }
+    function findVal(obj, keys) {
+        for (let k of keys) if (obj[k] !== undefined) return obj[k];
+        return '---';
     }
 
     function render() {
@@ -105,30 +198,46 @@
 
         slots.forEach((data, sIdx) => {
             if (!data) return;
-            Object.keys(data.items).forEach(k => {
-                const it = data.items[k];
+            const customer = data.customer.name;
+            const items = data.items;
+            
+            Object.keys(items).forEach(k => {
+                const it = items[k];
                 const title = it.title || it.name;
-                const barcode = it.barcode || it.code || it.id || '---';
-                if (!groups[title]) groups[title] = { b: barcode, instances: [] };
-                groups[title].instances.push({ n: data.customer.name, q: it.quantity });
+                const barcode = findVal(it, ['barcode', 'code', 'id']);
+                const price = findVal(it, ['price', 'fee', 'amount']);
+
+                if (!groups[title]) {
+                    groups[title] = { b: barcode, p: price, instances: [] };
+                }
+                groups[title].instances.push({ n: customer, q: it.quantity, c: colors[sIdx] });
             });
         });
 
         Object.keys(groups).sort().forEach(title => {
             const g = groups[title];
-            // ایجاد لینک جستجوی تصاویر گوگل بر اساس بارکد و نام کالا
+            // لینک جستجوی تصاویر گوگل
             const googleSearchUrl = `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(g.b + " " + title)}`;
-            
-            let h = `<div class="product-card">
-                        <div class="product-header">
-                            <div>
-                                <b style="font-size: 16px;">📦 ${title}</b><br>
-                                <a href="${googleSearchUrl}" target="_blank" class="barcode-link">🔍 بارکد (جستجوی عکس): ${g.b}</a>
-                            </div>
-                        </div>`;
+
+            let h = `
+                <div class="product-card">
+                    <div class="product-header">
+                        <div>
+                            <div class="p-title">📦 ${title}</div>
+                            <div class="p-info" onclick="window.open('${googleSearchUrl}', '_blank')">🔍 بارکد: ${g.b}</div>
+                        </div>
+                        <div class="price-text">${isNaN(g.p) ? g.p : Number(g.p).toLocaleString()}</div>
+                    </div>`;
             
             g.instances.forEach(row => {
-                h += `<div class="order-row"><span>👤 ${row.n}</span><span class="qty">${row.q}</span></div>`;
+                h += `
+                    <div class="order-row" style="--c: ${row.c}">
+                        <span class="customer-name" style="color:${row.c}">${row.n}</span>
+                        <div style="display:flex; align-items:center;">
+                            <span class="qty-badge">${row.q}</span>
+                            <input type="checkbox">
+                        </div>
+                    </div>`;
             });
             out.innerHTML += h + `</div>`;
         });
