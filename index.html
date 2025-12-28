@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Piker Master (Barcode Search)</title>
+    <title>Piker UI Master (Barcode Search)</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
         :root { --bg: #1a202c; --card-bg: #2d3748; --accent: #4299e1; --text: #f7fafc; }
@@ -17,24 +17,21 @@
 
         #scanner-wrapper { display: none; padding: 10px; background: #000; position: relative; }
         #reader { width: 100%; border-radius: 12px; overflow: hidden; }
-        .scanner-btns { display: flex; gap: 5px; margin-top: 10px; }
-        .btn-action { flex: 1; padding: 12px; text-align: center; border-radius: 8px; cursor: pointer; font-weight: bold; border: none; }
+        .close-scanner { background: #e53e3e; color: white; padding: 12px; text-align: center; border-radius: 8px; margin-top: 10px; cursor: pointer; font-weight: bold; }
 
         .product-card { background: var(--card-bg); border-radius: 15px; margin: 15px; overflow: hidden; border-right: 5px solid var(--accent); box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
-        .product-header { padding: 12px; display: flex; align-items: center; background: rgba(0,0,0,0.2); }
+        .product-header { padding: 15px; background: rgba(0,0,0,0.2); }
         
-        /* استایل بارکد کلیک‌شونده */
-        .barcode-btn {
+        /* استایل جدید بارکد برای کلیک */
+        .barcode-link { 
+            color: #63b3ed; 
+            text-decoration: underline; 
+            font-weight: bold; 
+            font-family: monospace; 
+            font-size: 14px;
+            cursor: pointer;
             display: inline-block;
-            margin-top: 8px;
-            background: #2b6cb0;
-            color: white;
-            padding: 4px 10px;
-            border-radius: 6px;
-            text-decoration: none;
-            font-size: 13px;
-            font-weight: bold;
-            border: 1px solid var(--accent);
+            margin-top: 5px;
         }
 
         .order-row { padding: 10px 15px; display: flex; justify-content: space-between; border-top: 1px solid #4a5568; }
@@ -43,7 +40,7 @@
 </head>
 <body>
 
-<div class="header">PIKER LIVE + BARCODE SEARCH</div>
+<div class="header">PIKER MASTER (BARCODE SEARCH)</div>
 
 <div class="slot-container">
     <div class="slot-card" id="sc0" onclick="startScan(0)"><b>۱</b><span id="u0">خالی</span></div>
@@ -56,10 +53,7 @@
 
 <div id="scanner-wrapper">
     <div id="reader"></div>
-    <div class="scanner-btns">
-        <button class="btn-action" style="background:#f6ad55; color:black;" onclick="toggleFlash()">🔦 فلش</button>
-        <button class="btn-action" style="background:#e53e3e; color:white;" onclick="stopScan()">انصراف</button>
-    </div>
+    <div class="close-scanner" onclick="stopScan()">انصراف</div>
 </div>
 
 <div id="output"></div>
@@ -68,7 +62,6 @@
     let slots = [null, null, null, null, null];
     let currentSlot = null;
     let html5QrCode = null;
-    let flashOn = false;
 
     async function startScan(index) {
         currentSlot = index;
@@ -78,7 +71,7 @@
 
         if(!html5QrCode) html5QrCode = new Html5Qrcode("reader");
         
-        const config = { fps: 15, qrbox: { width: 250, height: 250 } };
+        const config = { fps: 10, qrbox: { width: 250, height: 250 } };
         
         html5QrCode.start({ facingMode: "environment" }, config, (decodedText) => {
             handleResult(decodedText);
@@ -86,19 +79,11 @@
         });
     }
 
-    function toggleFlash() {
-        if(html5QrCode && html5QrCode.isScanning) {
-            flashOn = !flashOn;
-            html5QrCode.applyVideoConstraints({ advanced: [{ torch: flashOn }] });
-        }
-    }
-
     function stopScan() {
         if(html5QrCode) {
             html5QrCode.stop().then(() => {
                 document.getElementById('scanner-wrapper').style.display = 'none';
                 document.getElementById(`sc${currentSlot}`).classList.remove('active');
-                flashOn = false;
             });
         }
     }
@@ -118,29 +103,30 @@
         out.innerHTML = '';
         let groups = {};
 
-        slots.forEach((data) => {
+        slots.forEach((data, sIdx) => {
             if (!data) return;
             Object.keys(data.items).forEach(k => {
                 const it = data.items[k];
                 const title = it.title || it.name;
-                const barcode = it.barcode || it.code || it.id || "---";
+                const barcode = it.barcode || it.code || it.id || '---';
                 if (!groups[title]) groups[title] = { b: barcode, instances: [] };
                 groups[title].instances.push({ n: data.customer.name, q: it.quantity });
             });
         });
 
-        Object.keys(groups).forEach(title => {
+        Object.keys(groups).sort().forEach(title => {
             const g = groups[title];
-            // لینک جستجوی عکس گوگل (ترکیب بارکد و نام برای دقت بیشتر)
-            const googleSearchUrl = `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(g.b + ' ' + title)}`;
+            // ایجاد لینک جستجوی تصاویر گوگل بر اساس بارکد و نام کالا
+            const googleSearchUrl = `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(g.b + " " + title)}`;
             
             let h = `<div class="product-card">
-                <div class="product-header">
-                    <div style="width:100%">
-                        <b>${title}</b><br>
-                        <a href="${googleSearchUrl}" target="_blank" class="barcode-btn">🔍 مشاهده عکس کالا (${g.b})</a>
-                    </div>
-                </div>`;
+                        <div class="product-header">
+                            <div>
+                                <b style="font-size: 16px;">📦 ${title}</b><br>
+                                <a href="${googleSearchUrl}" target="_blank" class="barcode-link">🔍 بارکد (جستجوی عکس): ${g.b}</a>
+                            </div>
+                        </div>`;
+            
             g.instances.forEach(row => {
                 h += `<div class="order-row"><span>👤 ${row.n}</span><span class="qty">${row.q}</span></div>`;
             });
