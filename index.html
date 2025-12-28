@@ -2,64 +2,58 @@
 <html lang="fa" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Piker Detail View (No Sum)</title>
+    <title>Piker Industrial v10</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        :root { --dark: #1a202c; --blue: #3182ce; --bg: #f7fafc; }
-        body { font-family: Tahoma; margin: 0; background: var(--bg); color: var(--dark); padding-bottom: 50px; }
-        .header { background: var(--dark); color: white; padding: 15px; position: sticky; top: 0; z-index: 100; text-align: center; }
-        
-        .slot-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 15px; background: white; border-bottom: 2px solid #e2e8f0; }
-        .slot { border: 2px dashed #cbd5e0; border-radius: 10px; padding: 8px; font-size: 11px; cursor: pointer; text-align: center; }
-        .slot.filled { border-style: solid; border-color: #38a169; background: #f0fff4; }
-        .slot input { display: none; }
-        
-        .container { padding: 15px; }
-        .product-group { background: white; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); overflow: hidden; border-right: 10px solid var(--blue); }
-        .product-name { background: #edf2f7; padding: 12px; font-weight: bold; font-size: 16px; border-bottom: 1px solid #cbd5e0; }
-        
-        .item-detail { padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; position: relative; }
-        .item-detail::before { content: ""; position: absolute; right: 0; top: 0; bottom: 0; width: 6px; background: var(--c); }
-        
-        .qty-label { background: var(--dark); color: white; padding: 3px 12px; border-radius: 6px; font-weight: bold; }
-        .clear-all { background: #e53e3e; color: white; border: none; padding: 10px; width: 100%; font-weight: bold; cursor: pointer; }
+        body { font-family: Tahoma; background: #f0f0f0; margin: 0; text-align: center; }
+        .header { background: #222; color: white; padding: 10px; position: sticky; top: 0; z-index: 100; }
+        .slot-bar { display: flex; justify-content: space-around; background: white; padding: 10px; border-bottom: 2px solid #ccc; }
+        .slot { border: 2px solid #aaa; border-radius: 8px; width: 18%; padding: 5px; font-size: 10px; background: #eee; }
+        .slot.active { border-color: #3182ce; background: #ebf8ff; }
+        .slot.done { border-color: #38a169; background: #f0fff4; }
+        input[type="file"] { display: none; }
+        .group-box { background: white; margin: 15px; border-radius: 10px; text-align: right; box-shadow: 0 2px 5px rgba(0,0,0,0.1); overflow: hidden; }
+        .p-name { background: #ddd; padding: 8px 15px; font-weight: bold; }
+        .item-line { padding: 10px; display: flex; justify-content: space-between; border-bottom: 1px solid #eee; border-right: 10px solid var(--c); }
+        .qty { background: #222; color: white; padding: 2px 8px; border-radius: 5px; font-weight: bold; }
     </style>
 </head>
 <body>
 
-<div class="header">
-    <h3>Piker: Grouping Mode (Separate Items)</h3>
+<div class="header">Piker: تفکیک کالایی (۵ جایگاه)</div>
+
+<div class="slot-bar">
+    <label class="slot" id="sl0">۱<input type="file" accept="image/*" capture="environment" onchange="up(0,this)"><div id="m0">⭕</div></label>
+    <label class="slot" id="sl1">۲<input type="file" accept="image/*" capture="environment" onchange="up(1,this)"><div id="m1">⭕</div></label>
+    <label class="slot" id="sl2">۳<input type="file" accept="image/*" capture="environment" onchange="up(2,this)"><div id="m2">⭕</div></label>
+    <label class="slot" id="sl3">۴<input type="file" accept="image/*" capture="environment" onchange="up(3,this)"><div id="m3">⭕</div></label>
+    <label class="slot" id="sl4">۵<input type="file" accept="image/*" capture="environment" onchange="up(4,this)"><div id="m4">⭕</div></label>
 </div>
 
-<div class="slot-container">
-    <label class="slot" id="slot-0"><input type="file" accept="image/*" capture="environment" onchange="process(0, this)"><span>F1</span><br><small id="s0">⭕</small></label>
-    <label class="slot" id="slot-1"><input type="file" accept="image/*" capture="environment" onchange="process(1, this)"><span>F2</span><br><small id="s1">⭕</small></label>
-    <label class="slot" id="slot-2"><input type="file" accept="image/*" capture="environment" onchange="process(2, this)"><span>F3</span><br><small id="s2">⭕</small></label>
-    <label class="slot" id="slot-3"><input type="file" accept="image/*" capture="environment" onchange="process(3, this)"><span>F4</span><br><small id="s3">⭕</small></label>
-    <label class="slot" id="slot-4"><input type="file" accept="image/*" capture="environment" onchange="process(4, this)"><span>F5</span><br><small id="s4">⭕</small></label>
-    <button onclick="location.reload()" class="clear-all" style="grid-column: span 1; font-size: 10px;">Reset</button>
-</div>
-
-<div class="container" id="output"></div>
+<div id="output"></div>
+<div id="scanner-temp" style="display:none"></div>
 
 <script>
     let slots = [null, null, null, null, null];
     const colors = ["#3182ce", "#e53e3e", "#38a169", "#d69e2e", "#805ad5"];
-    const qr = new Html5Qrcode("output");
+    const engine = new Html5Qrcode("scanner-temp");
 
-    async function process(idx, el) {
+    async function up(i, el) {
         const file = el.files[0];
         if (!file) return;
-        document.getElementById(`s${idx}`).innerText = "⏳...";
+        document.getElementById('m'+i).innerText = "⏳";
 
-        try {
-            const res = await qr.scanFile(file, true);
-            slots[idx] = JSON.parse(res);
-            document.getElementById(`slot-${idx}`).classList.add('filled');
-            document.getElementById(`s${idx}`).innerText = "✅";
+        engine.scanFile(file, true)
+        .then(res => {
+            slots[i] = JSON.parse(res);
+            document.getElementById('sl'+i).className = "slot done";
+            document.getElementById('m'+i).innerText = "✅";
             render();
-        } catch (e) { alert("Error!"); }
+        })
+        .catch(e => {
+            alert("اسکن نشد! دوباره عکس بگیرید.");
+            document.getElementById('m'+i).innerText = "❌";
+        });
     }
 
     function render() {
@@ -67,43 +61,26 @@
         out.innerHTML = '';
         let groups = {};
 
-        // Step 1: Group by Product Name but keep instances separate
         slots.forEach((data, sIdx) => {
             if (!data) return;
             const customer = data.customer.name;
             const items = data.items;
-
             Object.keys(items).forEach(k => {
                 const it = items[k];
-                const title = it.title;
-                if (!groups[title]) groups[title] = [];
-                
-                // Add this instance to the group
-                groups[title].push({
-                    customer: customer,
-                    qty: it.quantity,
-                    color: colors[sIdx]
-                });
+                if (!groups[it.title]) groups[it.title] = [];
+                groups[it.title].push({ n: customer, q: it.quantity, c: colors[sIdx] });
             });
         });
 
-        // Step 2: Render groups
         Object.keys(groups).sort().forEach(title => {
-            let html = `<div class="product-group"><div class="product-name">📦 ${title}</div>`;
-            
-            groups[title].forEach(entry => {
-                html += `
-                <div class="item-detail" style="--c: ${entry.color}">
-                    <span style="color:${entry.color}; font-weight:bold;">👤 ${entry.customer}</span>
-                    <div style="display:flex; align-items:center;">
-                        <span class="qty-label">${entry.qty}</span>
-                        <input type="checkbox" style="width:22px; height:22px; margin-right:10px;">
-                    </div>
+            let h = `<div class="group-box"><div class="p-name">📦 ${title}</div>`;
+            groups[title].forEach(row => {
+                h += `<div class="item-line" style="--c: ${row.c}">
+                    <span style="color:${row.c}">👤 ${row.n}</span>
+                    <span><span class="qty">${row.q}</span> <input type="checkbox" style="width:20px;height:20px;margin-right:10px"></span>
                 </div>`;
             });
-            
-            html += `</div>`;
-            out.innerHTML += html;
+            out.innerHTML += h + `</div>`;
         });
     }
 </script>
