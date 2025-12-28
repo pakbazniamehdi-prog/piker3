@@ -3,141 +3,157 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Piker Batch Master</title>
+    <title>Piker 5-Slot Batcher</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        :root { --bg: #f8fafc; --dark: #1a202c; --accent: #3182ce; }
-        body { font-family: Tahoma; margin: 0; background: var(--bg); color: var(--dark); }
-        .header { background: var(--dark); color: white; padding: 15px; position: sticky; top: 0; z-index: 1000; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        :root { --dark: #1a202c; --blue: #3182ce; --green: #38a169; }
+        body { font-family: Tahoma; margin: 0; background: #f7fafc; color: var(--dark); padding-bottom: 50px; }
+        .header { background: var(--dark); color: white; padding: 15px; position: sticky; top: 0; z-index: 100; }
         
-        .upload-section { padding: 20px; background: white; border-bottom: 2px solid #e2e8f0; }
-        .btn-scan { background: var(--accent); color: white; padding: 15px 40px; border-radius: 50px; font-weight: bold; border: none; cursor: pointer; box-shadow: 0 4px 15px rgba(49,130,206,0.4); font-size: 16px; }
-        input[type="file"] { display: none; }
+        /* استایل ۵ جایگاه اسکن */
+        .slot-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 15px; background: white; border-bottom: 2px solid #e2e8f0; }
+        .slot { border: 2px dashed #cbd5e0; border-radius: 12px; padding: 10px; font-size: 12px; cursor: pointer; position: relative; transition: all 0.3s; }
+        .slot.active { border-color: var(--blue); background: #ebf8ff; }
+        .slot.filled { border-style: solid; border-color: var(--green); background: #f0fff4; }
+        .slot input { display: none; }
+        .slot-name { display: block; font-weight: bold; margin-bottom: 5px; }
 
         .container { padding: 15px; }
-        .product-group { background: white; border-radius: 12px; margin-bottom: 20px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
-        .product-title { background: #edf2f7; padding: 12px 15px; font-weight: bold; font-size: 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #cbd5e0; }
+        .product-card { background: white; border-radius: 15px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); overflow: hidden; text-align: right; border-right: 8px solid var(--blue); }
+        .product-header { background: #edf2f7; padding: 12px; font-weight: bold; display: flex; justify-content: space-between; }
         
-        .order-line { padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; position: relative; }
-        .order-line::before { content: ""; position: absolute; right: 0; top: 2px; bottom: 2px; width: 6px; border-radius: 0 4px 4px 0; background: var(--order-color); }
+        .order-line { padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; }
+        .order-line::before { content: ""; position: absolute; right: 0; top: 0; bottom: 0; width: 5px; background: var(--c); }
         
-        .qty-circle { background: var(--dark); color: white; padding: 4px 12px; border-radius: 8px; font-weight: bold; font-size: 16px; }
-        .total-label { background: #38a169; color: white; padding: 4px 12px; border-radius: 8px; font-size: 14px; }
-        
-        .checkbox-container { display: flex; align-items: center; gap: 10px; }
-        input[type="checkbox"] { width: 24px; height: 24px; accent-color: #38a169; }
-
-        .status-bar { font-size: 12px; margin-top: 8px; color: #63b3ed; }
+        .qty-badge { background: var(--dark); color: white; padding: 2px 10px; border-radius: 8px; font-weight: bold; }
+        .status-bar { font-size: 13px; color: #63b3ed; margin-top: 5px; }
     </style>
 </head>
 <body>
 
 <div class="header">
-    <h3>پنل تجمیع هوشمند کالا</h3>
-    <div id="st" class="status-bar">آماده دریافت فاکتورهای بچ (Batch)</div>
+    <h3>میز تجمیع ۵ فاکتوری Piker</h3>
+    <div id="st" class="status-bar">فاکتورها را در جایگاه‌های زیر قرار دهید</div>
 </div>
 
-<div class="upload-section">
-    <label for="camera-input" class="btn-scan">📸 اسکن QR فاکتور (هر تعداد)</label>
-    <input type="file" id="camera-input" accept="image/*" capture="environment">
+<div class="slot-container">
+    <label class="slot" id="slot-0">
+        <span class="slot-name">فاکتور ۱</span>
+        <span class="slot-status">⭕ خالی</span>
+        <input type="file" accept="image/*" capture="environment" onchange="handleSlot(0, this)">
+    </label>
+    <label class="slot" id="slot-1">
+        <span class="slot-name">فاکتور ۲</span>
+        <span class="slot-status">⭕ خالی</span>
+        <input type="file" accept="image/*" capture="environment" onchange="handleSlot(1, this)">
+    </label>
+    <label class="slot" id="slot-2">
+        <span class="slot-name">فاکتور ۳</span>
+        <span class="slot-status">⭕ خالی</span>
+        <input type="file" accept="image/*" capture="environment" onchange="handleSlot(2, this)">
+    </label>
+    <label class="slot" id="slot-3">
+        <span class="slot-name">فاکتور ۴</span>
+        <span class="slot-status">⭕ خالی</span>
+        <input type="file" accept="image/*" capture="environment" onchange="handleSlot(3, this)">
+    </label>
+    <label class="slot" id="slot-4">
+        <span class="slot-name">فاکتور ۵</span>
+        <span class="slot-status">⭕ خالی</span>
+        <input type="file" accept="image/*" capture="environment" onchange="handleSlot(4, this)">
+    </label>
+    <button onclick="clearAll()" style="font-size:10px; background:#fc8181; border:none; border-radius:8px; color:white;">پاکسازی کل</button>
 </div>
 
-<div class="container" id="main-list"></div>
+<div class="container" id="output"></div>
 
 <script>
-    let inventory = {}; // ساختار: { "نام کالا": { total: 0, orders: [ {name, qty, color} ] } }
-    let customerColors = {};
-    const palette = ["#3182ce", "#e53e3e", "#38a169", "#d69e2e", "#805ad5", "#319795", "#dd6b20", "#d53f8c", "#4a5568", "#2c7a7b"];
-    let colorIndex = 0;
+    let slotsData = [null, null, null, null, null]; // ذخیره دیتای هر اسلات
+    const palette = ["#3182ce", "#e53e3e", "#38a169", "#d69e2e", "#805ad5"];
+    const qrEngine = new Html5Qrcode("output");
 
-    const qrScanner = new Html5Qrcode("main-list");
-
-    document.getElementById('camera-input').onchange = async (e) => {
-        const file = e.target.files[0];
+    async function handleSlot(index, input) {
+        const file = input.files[0];
         if (!file) return;
-        document.getElementById('st').innerText = "⏳ در حال آنالیز دیتای فاکتور...";
 
+        const slotEl = document.getElementById(`slot-${index}`);
+        slotEl.querySelector('.slot-status').innerText = "⏳ پردازش...";
+        
         try {
-            const rawText = await qrScanner.scanFile(file, true);
-            processData(rawText);
+            const result = await qrEngine.scanFile(file, true);
+            slotsData[index] = JSON.parse(result);
+            slotEl.classList.add('filled');
+            slotEl.querySelector('.slot-status').innerText = "✅ " + slotsData[index].customer.name;
+            calculateBatch();
         } catch (err) {
-            alert("❌ خطا در اسکن! لطفا از فاصله نزدیک‌تر و با نور کافی عکس بگیرید.");
-            document.getElementById('st').innerText = "❌ اسکن ناموفق";
+            alert("QR پیدا نشد! دوباره عکس بگیرید.");
+            slotEl.querySelector('.slot-status').innerText = "❌ خطا";
         }
-    };
+    }
 
-    function processData(json) {
-        try {
-            const data = JSON.parse(json);
+    function calculateBatch() {
+        let inventory = {};
+        
+        slotsData.forEach((data, idx) => {
+            if (!data) return;
+
             const customer = data.customer.name;
-            
-            // تخصیص رنگ به مشتری جدید
-            if (!customerColors[customer]) {
-                customerColors[customer] = palette[colorIndex % palette.length];
-                colorIndex++;
-            }
-
             const items = data.items;
+
             Object.keys(items).forEach(key => {
                 const it = items[key];
                 const title = it.title;
                 const qty = parseInt(it.quantity);
 
                 if (!inventory[title]) {
-                    inventory[title] = { total: 0, barcode: it.barcode, price: it.price, orders: [] };
+                    inventory[title] = { total: 0, barcode: it.barcode, orders: [] };
                 }
 
-                // مدیریت فاکتورهای چند QRی (اگر همان مشتری در این Batch بود، جمع بزن)
+                // تجمیع فاکتورهای چند تکه برای یک مشتری در یک اسلات یا اسلات‌های مختلف
                 const existingOrder = inventory[title].orders.find(o => o.name === customer);
                 if (existingOrder) {
                     existingOrder.q += qty;
                 } else {
-                    inventory[title].orders.push({ name: customer, q: qty, color: customerColors[customer] });
+                    inventory[title].orders.push({ name: customer, q: qty, color: palette[idx % palette.length] });
                 }
-                
                 inventory[title].total += qty;
             });
+        });
 
-            document.getElementById('st').innerText = "✅ فاکتور " + customer + " با موفقیت به لیست تجمیعی اضافه شد.";
-            render();
-        } catch (e) {
-            alert("ساختار دیتای QR نامعتبر است.");
-        }
+        render(inventory);
     }
 
-    function render() {
-        const listDiv = document.getElementById('main-list');
-        listDiv.innerHTML = '';
+    function render(inventory) {
+        const out = document.getElementById('output');
+        out.innerHTML = '';
 
-        // مرتب‌سازی کالاها (مثلاً روغن‌ها کنار هم، آب‌ها کنار هم)
-        const sortedTitles = Object.keys(inventory).sort();
-
-        sortedTitles.forEach(title => {
-            const product = inventory[title];
+        Object.keys(inventory).sort().forEach(title => {
+            const p = inventory[title];
             let html = `
-                <div class="product-group">
-                    <div class="product-title">
-                        <div>
-                            <span>📦 ${title}</span>
-                            <div style="font-size:10px; color:#718096; font-weight:normal;">کد: ${product.barcode || '---'}</div>
-                        </div>
-                        <div class="total-label">مجموع: ${product.total}</div>
+                <div class="product-card">
+                    <div class="product-header">
+                        <span>📦 ${title}</span>
+                        <span style="color:var(--green)">مجموع: ${p.total}</span>
                     </div>`;
 
-            product.orders.forEach(ord => {
+            p.orders.forEach(ord => {
                 html += `
-                    <div class="order-line" style="--order-color: ${ord.color}">
-                        <span style="font-weight:bold; color: ${ord.color}">👤 ${ord.name}</span>
-                        <div class="checkbox-container">
-                            <span class="qty-circle">${ord.q}</span>
-                            <input type="checkbox">
+                    <div class="order-line" style="--c: ${ord.color}">
+                        <span style="font-weight:bold; color:${ord.color}">👤 ${ord.name}</span>
+                        <div>
+                            <span class="qty-badge">${ord.q}</span>
+                            <input type="checkbox" style="width:20px; height:20px; margin-right:10px;">
                         </div>
                     </div>`;
             });
-
-            html += `</div>`;
-            listDiv.innerHTML += html;
+            out.innerHTML += html + `</div>`;
         });
+    }
+
+    function clearAll() {
+        if(confirm("آیا کل میز کار پاک شود؟")) {
+            location.reload();
+        }
     }
 </script>
 </body>
