@@ -2,107 +2,89 @@
 <html lang="fa" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Piker Professional | نسخه کامل کالا</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Piker Pro | Barcode & Price</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        :root { --primary: #2d3748; --accent: #3182ce; --price: #38a169; }
-        body { font-family: Tahoma, sans-serif; margin: 0; background: #f0f4f8; color: var(--primary); text-align: center; }
-        .header { background: var(--primary); color: white; padding: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        
-        .scan-zone { padding: 25px; }
-        .btn-capture { 
-            background: var(--accent); color: white; padding: 18px 35px; 
-            border-radius: 12px; font-size: 18px; font-weight: bold; 
-            border: none; cursor: pointer; display: inline-block;
-            box-shadow: 0 6px 15px rgba(49, 130, 206, 0.4);
-        }
+        :root { --primary: #2d3748; --accent: #3182ce; --success: #38a169; }
+        body { font-family: Tahoma, sans-serif; margin: 0; background: #f8fafc; color: var(--primary); text-align: center; }
+        .header { background: var(--primary); color: white; padding: 20px; }
+        .scan-zone { padding: 20px; background: white; border-bottom: 2px solid #e2e8f0; }
+        .btn-capture { background: var(--accent); color: white; padding: 15px 30px; border-radius: 10px; font-weight: bold; border: none; cursor: pointer; }
         input[type="file"] { display: none; }
-
-        .container { padding: 10px; padding-bottom: 50px; }
-        .card { background: white; border-radius: 15px; margin-bottom: 15px; text-align: right; box-shadow: 0 4px 8px rgba(0,0,0,0.06); border-right: 8px solid var(--accent); overflow: hidden; }
-        .card-header { background: #edf2f7; padding: 12px; font-weight: bold; border-bottom: 1px solid #e2e8f0; }
-        
-        /* استایل جدید برای بارکد و قیمت */
-        .item-info { font-size: 11px; color: #718096; margin-top: 4px; display: block; }
-        .price-tag { color: var(--price); font-weight: bold; font-size: 13px; }
-
-        .item-row { padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; }
-        .qty-badge { background: var(--primary); color: white; padding: 2px 10px; border-radius: 20px; font-weight: bold; }
-        
-        #status { margin-top: 10px; font-size: 14px; font-weight: bold; }
+        .card { background: white; border-radius: 12px; margin: 15px; text-align: right; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-right: 8px solid var(--accent); overflow: hidden; }
+        .card-header { background: #edf2f7; padding: 10px 15px; border-bottom: 1px solid #e2e8f0; }
+        .info-row { font-size: 12px; color: #4a5568; margin-top: 5px; }
+        .price-text { color: var(--success); font-weight: bold; }
+        .item-row { padding: 10px; display: flex; justify-content: space-between; border-bottom: 1px solid #f1f5f9; }
+        .qty-badge { background: var(--primary); color: white; padding: 2px 8px; border-radius: 10px; font-weight: bold; }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <h2>سیستم تجمیع فاکتور Piker</h2>
-        <p id="status">📷 عکس فاکتور را انتخاب کنید</p>
+        <h2>تجمیع‌گر حرفه‌ای Piker</h2>
+        <p id="status">📷 عکس QR فاکتور را بگیرید</p>
     </div>
 
     <div class="scan-zone">
-        <label for="camera-input" class="btn-capture">📸 اسکن QR فاکتور (بارکد و قیمت)</label>
+        <label for="camera-input" class="btn-capture">📸 انتخاب عکس (بارکد و قیمت)</label>
         <input type="file" id="camera-input" accept="image/*" capture="environment">
     </div>
 
-    <div class="container" id="main-list"></div>
+    <div id="main-list"></div>
 
 <script>
     let inventory = {}; 
-    let scannedHashes = new Set();
-    const html5QrCode = new Html5Qrcode("main-list");
+    let scannedOrders = new Set();
+    const qrEngine = new Html5Qrcode("main-list");
 
-    document.getElementById('camera-input').addEventListener('change', async (e) => {
+    document.getElementById('camera-input').onchange = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
-
-        const status = document.getElementById('status');
-        status.innerText = "⏳ در حال استخراج دیتای کالاها...";
+        document.getElementById('status').innerText = "⏳ در حال استخراج جزئیات...";
 
         try {
-            const decodedText = await html5QrCode.scanFile(file, true);
-            processData(decodedText);
+            const decodedText = await qrEngine.scanFile(file, true);
+            process(decodedText);
         } catch (err) {
-            status.innerText = "❌ خطا: عکس واضح نبود!";
-            status.style.color = "#e53e3e";
+            alert("❌ QR خوانده نشد. مطمئن شوید عکس واضح است.");
+            document.getElementById('status').innerText = "❌ خطا در اسکن";
         }
-    });
+    };
 
-    function processData(rawText) {
+    function process(raw) {
         try {
-            const data = JSON.parse(rawText);
-            const customerName = data.customer.name || "نامشخص";
-            const orderKey = (data.customer.orderDate || "") + customerName;
+            const data = JSON.parse(raw);
+            const cName = data.customer.name || "نامشخص";
+            const oKey = (data.customer.orderDate || "") + cName;
 
-            if (scannedHashes.has(orderKey)) {
-                document.getElementById('status').innerText = "⚠️ این فاکتور قبلاً ثبت شده.";
+            if (scannedOrders.has(oKey)) {
+                alert("این فاکتور قبلاً ثبت شده است.");
                 return;
             }
+            scannedOrders.add(oKey);
 
-            scannedHashes.add(orderKey);
-            if (navigator.vibrate) navigator.vibrate(200);
-
-            const itemsObj = data.items;
-            Object.keys(itemsObj).forEach(key => {
-                const item = itemsObj[key];
-                const title = item.title;
-                const qty = parseInt(item.quantity);
-                const barcode = item.barcode || "بدون بارکد";
-                const price = item.price || "0";
+            const items = data.items;
+            Object.keys(items).forEach(k => {
+                const it = items[k];
+                const title = it.title || "بدون نام";
+                const qty = parseInt(it.quantity || 0);
+                
+                // جستجوی هوشمند برای بارکد و قیمت (اگر نام کلیدها متفاوت بود)
+                const barcode = it.barcode || it.code || it.id || "---";
+                const price = it.price || it.fee || it.amount || "0";
 
                 if (!inventory[title]) {
                     inventory[title] = { total: 0, barcode: barcode, price: price, details: [] };
                 }
                 inventory[title].total += qty;
-                inventory[title].details.push({ n: customerName, q: qty });
+                inventory[title].details.push({ n: cName, q: qty });
             });
 
-            document.getElementById('status').innerText = "✅ فاکتور " + customerName + " ثبت شد";
-            document.getElementById('status').style.color = "#38a169";
+            document.getElementById('status').innerText = "✅ فاکتور " + cName + " ثبت شد";
             render();
-        } catch (e) {
-            document.getElementById('status').innerText = "❌ دیتای QR سازگار نیست!";
-        }
+        } catch (e) { alert("خطا در ساختار دیتا"); }
     }
 
     function render() {
@@ -115,11 +97,13 @@
                 <div class="card">
                     <div class="card-header">
                         <div>
-                            <span>📦 ${title}</span>
-                            <span class="item-info">🔍 بارکد: ${product.barcode}</span>
-                            <span class="price-tag">💰 قیمت واحد: ${Number(product.price).toLocaleString()} ریال</span>
+                            <strong style="font-size: 16px;">📦 ${title}</strong>
+                            <div class="info-row">
+                                <span>🔍 بارکد: ${product.barcode}</span> | 
+                                <span class="price-text">💰 قیمت: ${Number(product.price).toLocaleString()}</span>
+                            </div>
                         </div>
-                        <span style="font-size: 18px;">کل: ${product.total}</span>
+                        <div style="font-size: 20px; font-weight: bold;">کل: ${product.total}</div>
                     </div>`;
             
             product.details.forEach(d => {
@@ -132,8 +116,7 @@
                         </div>
                     </div>`;
             });
-            html += `</div>`;
-            container.innerHTML += html;
+            container.innerHTML += html + `</div>`;
         });
     }
 </script>
