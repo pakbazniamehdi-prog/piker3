@@ -3,104 +3,88 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Piker UI Master + Online Image</title>
+    <title>Piker UI Master (No Gallery)</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        :root {
-            --bg: #1a202c; --card-bg: #2d3748; --accent: #4299e1;
-            --success: #48bb78; --text: #f7fafc; --gray: #a0aec0;
-        }
-        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 0; user-select: none; }
-        .header { background: linear-gradient(90deg, #2c3e50, #000000); padding: 15px; text-align: center; font-weight: bold; font-size: 18px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        :root { --bg: #1a202c; --card-bg: #2d3748; --accent: #4299e1; --text: #f7fafc; }
+        body { font-family: sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 0; }
+        .header { background: #000; padding: 15px; text-align: center; font-weight: bold; }
         
         .slot-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 15px; }
-        .slot-card { background: var(--card-bg); border: 2px solid transparent; border-radius: 12px; padding: 12px 5px; text-align: center; cursor: pointer; transition: 0.2s; }
-        .slot-card.active { border-color: var(--accent); transform: translateY(-3px); }
-        .slot-card.filled { background: #22543d; border-color: var(--success); }
-        .slot-card span { display: block; font-size: 10px; color: var(--gray); margin-top: 5px; }
-        
-        input[type="file"] { display: none; }
-        .container { padding: 10px; }
+        .slot-card { background: var(--card-bg); border: 2px solid transparent; border-radius: 12px; padding: 15px 5px; text-align: center; cursor: pointer; }
+        .slot-card.active { border-color: var(--accent); background: #2c5282; }
+        .slot-card.filled { border-color: #48bb78; background: #22543d; }
 
-        .product-card {
-            background: var(--card-bg); border-radius: 16px; margin-bottom: 15px;
-            overflow: hidden; border-right: 6px solid var(--accent);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
-        }
+        /* باکس اسکنر زنده */
+        #scanner-wrapper { display: none; padding: 10px; background: #000; position: relative; }
+        #reader { width: 100%; border-radius: 12px; overflow: hidden; }
+        .close-scanner { background: #e53e3e; color: white; padding: 10px; text-align: center; border-radius: 8px; margin-top: 10px; cursor: pointer; }
 
-        .product-header {
-            padding: 12px; background: rgba(0,0,0,0.2);
-            display: flex; justify-content: space-between; align-items: center;
-        }
-
-        /* استایل عکس کالا */
-        .product-img {
-            width: 55px; height: 55px; border-radius: 10px;
-            object-fit: cover; background: #1a202c;
-            border: 1px solid var(--gray); margin-left: 12px;
-        }
-
-        .p-info-box { display: flex; align-items: center; }
-        .p-title { font-size: 15px; font-weight: bold; color: white; }
-        .p-sku { font-size: 11px; color: var(--gray); }
-
-        .order-row {
-            padding: 12px 15px; display: flex; justify-content: space-between;
-            align-items: center; border-top: 1px solid rgba(255,255,255,0.05);
-            position: relative;
-        }
-        .order-row::after { content: ""; position: absolute; right: 0; top: 15%; bottom: 15%; width: 4px; background: var(--c); }
-        
-        .qty-badge { background: #000; color: white; padding: 4px 12px; border-radius: 8px; font-weight: bold; }
-        .price-text { color: var(--success); font-weight: bold; font-size: 13px; }
-        input[type="checkbox"] { width: 22px; height: 22px; accent-color: var(--success); margin-right: 12px; }
+        .product-card { background: var(--card-bg); border-radius: 15px; margin: 15px; overflow: hidden; border-right: 5px solid var(--accent); box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        .product-header { padding: 12px; display: flex; align-items: center; background: rgba(0,0,0,0.2); }
+        .product-img { width: 50px; height: 50px; border-radius: 8px; margin-left: 10px; object-fit: cover; }
+        .order-row { padding: 10px 15px; display: flex; justify-content: space-between; border-top: 1px solid #4a5568; }
+        .qty { background: #000; padding: 2px 8px; border-radius: 5px; font-weight: bold; }
     </style>
 </head>
 <body>
 
-<div class="header">PIKER UI MASTER + IMAGE</div>
+<div class="header">PIKER LIVE (NO GALLERY)</div>
 
 <div class="slot-container">
-    <label class="slot-card" id="sc0"><b>۱</b><span id="u0">خالی</span><input type="file" accept="image/*" capture="environment" onchange="captureHighRes(0, this)"></label>
-    <label class="slot-card" id="sc1"><b>۲</b><span id="u1">خالی</span><input type="file" accept="image/*" capture="environment" onchange="captureHighRes(1, this)"></label>
-    <label class="slot-card" id="sc2"><b>۳</b><span id="u2">خالی</span><input type="file" accept="image/*" capture="environment" onchange="captureHighRes(2, this)"></label>
-    <label class="slot-card" id="sc3"><b>۴</b><span id="u3">خالی</span><input type="file" accept="image/*" capture="environment" onchange="captureHighRes(3, this)"></label>
-    <label class="slot-card" id="sc4"><b>۵</b><span id="u4">خالی</span><input type="file" accept="image/*" capture="environment" onchange="captureHighRes(4, this)"></label>
+    <div class="slot-card" id="sc0" onclick="startScan(0)"><b>۱</b><span id="u0">خالی</span></div>
+    <div class="slot-card" id="sc1" onclick="startScan(1)"><b>۲</b><span id="u1">خالی</span></div>
+    <div class="slot-card" id="sc2" onclick="startScan(2)"><b>۳</b><span id="u2">خالی</span></div>
+    <div class="slot-card" id="sc3" onclick="startScan(3)"><b>۴</b><span id="u3">خالی</span></div>
+    <div class="slot-card" id="sc4" onclick="startScan(4)"><b>۵</b><span id="u4">خالی</span></div>
     <div class="slot-card" onclick="location.reload()" style="background:#742a2a"><b>✖</b><span>ریست</span></div>
 </div>
 
-<div id="loading" style="display:none; color:var(--accent); text-align:center; padding:10px;">⏳ در حال پردازش و جستجوی تصویر...</div>
+<div id="scanner-wrapper">
+    <div id="reader"></div>
+    <div class="close-scanner" onclick="stopScan()">انصراف</div>
+</div>
 
-<div class="container" id="output"></div>
+<div id="output"></div>
 
 <script>
     let slots = [null, null, null, null, null];
-    const colors = ["#4299e1", "#f56565", "#48bb78", "#ecc94b", "#9f7aea"];
-    const engine = new Html5Qrcode("output");
+    let currentSlot = null;
+    let html5QrCode = null;
 
-    async function captureHighRes(index, input) {
-        const file = input.files[0];
-        if (!file) return;
-        document.getElementById('loading').style.display = 'block';
+    async function startScan(index) {
+        currentSlot = index;
+        document.getElementById('scanner-wrapper').style.display = 'block';
+        document.querySelectorAll('.slot-card').forEach(c => c.classList.remove('active'));
+        document.getElementById(`sc${index}`).classList.add('active');
+
+        if(!html5QrCode) html5QrCode = new Html5Qrcode("reader");
         
-        engine.scanFile(file, true)
-        .then(decodedText => {
-            const data = JSON.parse(decodedText);
-            slots[index] = data;
-            document.getElementById(`sc${index}`).className = "slot-card filled";
-            document.getElementById(`u${index}`).innerText = data.customer.name.substring(0, 8);
-            document.getElementById('loading').style.display = 'none';
-            render();
-        })
-        .catch(err => {
-            alert("❌ خطای اسکن: تصویر واضح نیست.");
-            document.getElementById('loading').style.display = 'none';
+        const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+        
+        html5QrCode.start({ facingMode: "environment" }, config, (decodedText) => {
+            handleResult(decodedText);
+            stopScan();
         });
     }
 
-    function findVal(obj, keys) {
-        for (let k of keys) if (obj[k] !== undefined) return obj[k];
-        return '---';
+    function stopScan() {
+        if(html5QrCode) {
+            html5QrCode.stop().then(() => {
+                document.getElementById('scanner-wrapper').style.display = 'none';
+                document.getElementById(`sc${currentSlot}`).classList.remove('active');
+            });
+        }
+    }
+
+    function handleResult(text) {
+        try {
+            const data = JSON.parse(text);
+            slots[currentSlot] = data;
+            document.getElementById(`sc${currentSlot}`).className = "slot-card filled";
+            document.getElementById(`u${currentSlot}`).innerText = data.customer.name.substring(0,8);
+            render();
+        } catch(e) { alert("QR کد نامعتبر است"); }
     }
 
     function render() {
@@ -112,44 +96,19 @@
             if (!data) return;
             Object.keys(data.items).forEach(k => {
                 const it = data.items[k];
-                const title = it.title || it.name;
-                const barcode = findVal(it, ['barcode', 'code', 'id']);
-                const price = findVal(it, ['price', 'fee', 'amount']);
-
-                if (!groups[title]) {
-                    groups[title] = { b: barcode, p: price, instances: [] };
-                }
-                groups[title].instances.push({ n: data.customer.name, q: it.quantity, c: colors[sIdx] });
+                if (!groups[it.title]) groups[it.title] = { b: it.barcode||'--', instances: [] };
+                groups[it.title].instances.push({ n: data.customer.name, q: it.quantity });
             });
         });
 
-        Object.keys(groups).sort().forEach(title => {
+        Object.keys(groups).forEach(title => {
             const g = groups[title];
-            // استفاده از کلمات کلیدی نام کالا برای جستجوی عکس
             const imgUrl = `https://source.unsplash.com/100x100/?product,${encodeURIComponent(title)}`;
-
-            let h = `
-                <div class="product-card">
-                    <div class="product-header">
-                        <div class="p-info-box">
-                            <img src="${imgUrl}" class="product-img" onerror="this.src='https://via.placeholder.com/100?text=📦'">
-                            <div>
-                                <div class="p-title">${title}</div>
-                                <div class="p-sku">کد: ${g.b}</div>
-                            </div>
-                        </div>
-                        <div class="price-text">${isNaN(g.p) ? g.p : Number(g.p).toLocaleString()}</div>
-                    </div>`;
-            
+            let h = `<div class="product-card"><div class="product-header">
+                <img src="${imgUrl}" class="product-img" onerror="this.src='https://via.placeholder.com/50'">
+                <div><b>${title}</b><br><small>${g.b}</small></div></div>`;
             g.instances.forEach(row => {
-                h += `
-                    <div class="order-row" style="--c: ${row.c}">
-                        <span style="color:${row.c}; font-weight:bold;">👤 ${row.n}</span>
-                        <div style="display:flex; align-items:center;">
-                            <span class="qty-badge">${row.q}</span>
-                            <input type="checkbox">
-                        </div>
-                    </div>`;
+                h += `<div class="order-row"><span>👤 ${row.n}</span><span class="qty">${row.q}</span></div>`;
             });
             out.innerHTML += h + `</div>`;
         });
