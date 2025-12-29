@@ -3,48 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Piker Master PRO - Cloud Sync</title>
+    <title>Piker Fix</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        :root { --bg: #1a202c; --card-bg: #2d3748; --accent: #4299e1; --success: #48bb78; --text: #f7fafc; --gray: #a0aec0; }
-        body { font-family: sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 0; user-select: none; }
-        .header { background: #000; padding: 15px; text-align: center; font-weight: bold; border-bottom: 2px solid var(--accent); }
+        :root { --bg: #1a202c; --card-bg: #2d3748; --accent: #4299e1; --text: #f7fafc; }
+        body { font-family: sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 0; }
         .piker-info { background: #2d3748; padding: 15px; margin: 10px; border-radius: 12px; }
-        input#pikerName { width: 100%; padding: 12px; border-radius: 8px; border: none; background: #1a202c; color: white; box-sizing: border-box; }
+        input#pikerName { width: 100%; padding: 12px; border-radius: 8px; border: 2px solid #4a5568; background: #1a202c; color: white; box-sizing: border-box; }
         .slot-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 15px; }
-        .slot-card { background: var(--card-bg); border: 2px solid transparent; border-radius: 12px; padding: 12px 5px; text-align: center; cursor: pointer; }
-        .slot-card.filled { background: #22543d; border-color: var(--success); }
+        .slot-card { background: var(--card-bg); border: 2px solid #4a5568; border-radius: 12px; padding: 15px 5px; text-align: center; cursor: pointer; }
+        .slot-card.filled { background: #22543d; border-color: #48bb78; }
         input[type="file"] { display: none; }
-        .container { padding: 10px; }
-        .product-card { background: var(--card-bg); border-radius: 12px; margin-bottom: 10px; padding: 10px; border-right: 5px solid var(--accent); }
-        .report-btn { background: var(--success); color: white; border: none; padding: 16px; width: calc(100% - 20px); margin: 10px; border-radius: 12px; font-weight: bold; display: none; cursor: pointer; }
-        .report-btn:disabled { background: #4a5568; opacity: 0.6; }
+        #loading { display: none; text-align: center; background: #ecc94b; color: #000; padding: 5px; font-weight: bold; }
+        .report-btn { background: #48bb78; color: white; border: none; padding: 16px; width: calc(100% - 20px); margin: 10px; border-radius: 12px; font-weight: bold; display: none; }
     </style>
 </head>
 <body>
 
-<div class="header">پنل انبار (متصل به گوگل شیت)</div>
+<div id="loading">⏳ در حال آنالیز تصویر... منتظر بمانید</div>
 
 <div class="piker-info">
-    <input type="text" id="pikerName" placeholder="نام پیکر..." oninput="checkName()">
+    <input type="text" id="pikerName" placeholder="نام پیکر را وارد کنید..." oninput="checkName()">
 </div>
 
-<div class="slot-container" id="mainSlots" style="opacity: 0.4; pointer-events: none;">
-    <label class="slot-card" id="sc0"><b>۱</b><span id="u0">خالی</span><input type="file" accept="image/*" capture="environment" onchange="captureHighRes(0, this)"></label>
-    <label class="slot-card" id="sc1"><b>۲</b><span id="u1">خالی</span><input type="file" accept="image/*" capture="environment" onchange="captureHighRes(1, this)"></label>
-    <label class="slot-card" id="sc2"><b>۳</b><span id="u2">خالی</span><input type="file" accept="image/*" capture="environment" onchange="captureHighRes(2, this)"></label>
-    <label class="slot-card" id="sc3"><b>۴</b><span id="u3">خالی</span><input type="file" accept="image/*" capture="environment" onchange="captureHighRes(3, this)"></label>
-    <label class="slot-card" id="sc4"><b>۵</b><span id="u4">خالی</span><input type="file" accept="image/*" capture="environment" onchange="captureHighRes(4, this)"></label>
-    <div class="slot-card" onclick="location.reload()" style="background:#742a2a"><b>✖</b><span>ریست</span></div>
+<div class="slot-container" id="mainSlots" style="opacity: 0.5; pointer-events: none;">
+    <label class="slot-card" id="sc0"><b>۱</b><br><span id="u0">خالی</span><input type="file" accept="image/*" capture="environment" onchange="captureHighRes(0, this)"></label>
+    <label class="slot-card" id="sc1"><b>۲</b><br><span id="u1">خالی</span><input type="file" accept="image/*" capture="environment" onchange="captureHighRes(1, this)"></label>
+    <label class="slot-card" id="sc2"><b>۳</b><br><span id="u2">خالی</span><input type="file" accept="image/*" capture="environment" onchange="captureHighRes(2, this)"></label>
+    <div class="slot-card" onclick="location.reload()" style="background:#742a2a"><b>✖</b><br>ریست</div>
 </div>
 
-<div class="container" id="output"></div>
-<button id="sendBtn" class="report-btn" onclick="sendToGoogle()">📊 ثبت و ارسال به شیت</button>
+<div id="output"></div>
+<button id="sendBtn" class="report-btn" onclick="sendToGoogle()">📊 ثبت در گوگل شیت</button>
 
 <script>
-    // لینک جدید و معتبر شما
     const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw0Kk8YRlZBmoY0ciF9_f8uQRWCWRmYvO_SObsVnL1_INd8AcFuj8Ve0I68Pj5jg6y0/exec';
-    let slots = [null, null, null, null, null];
+    let slots = [null, null, null];
     const engine = new Html5Qrcode("output");
 
     function checkName() {
@@ -57,58 +51,45 @@
     async function captureHighRes(index, input) {
         const file = input.files[0];
         if (!file) return;
-        engine.scanFile(file, true).then(decodedText => {
-            slots[index] = JSON.parse(decodedText);
-            document.getElementById(`sc${index}`).className = "slot-card filled";
-            document.getElementById(`u${index}`).innerText = slots[index].customer.name.substring(0, 8);
-            document.getElementById('sendBtn').style.display = 'block';
-            render();
-        }).catch(() => alert("خطا در اسکن QR"));
-    }
 
-    function render() {
-        const out = document.getElementById('output');
-        out.innerHTML = '';
-        let groups = {};
-        slots.forEach(s => {
-            if(!s) return;
-            Object.values(s.items).forEach(it => {
-                const title = it.title || it.name;
-                const barcode = it.barcode || it.code || '---';
-                if (!groups[title]) groups[title] = { b: barcode, instances: [] };
-                groups[title].instances.push({ n: s.customer.name, q: it.quantity });
-            });
-        });
-        Object.keys(groups).sort().forEach(title => {
-            const g = groups[title];
-            const googleUrl = `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(g.b + " " + title)}`;
-            let h = `<div class="product-card"><b>📦 ${title}</b><br><span style="color:var(--accent); font-size:12px; cursor:pointer;" onclick="window.open('${googleUrl}')">🔍 بارکد: ${g.b}</span>`;
-            g.instances.forEach(row => { h += `<div style="display:flex; justify-content:space-between; margin-top:5px; font-size:13px;"><span>👤 ${row.n}</span><b>${row.q}</b></div>`; });
-            out.innerHTML += h + `</div>`;
+        document.getElementById('loading').style.display = 'block';
+        
+        // پاک کردن دیتای قبلی برای اسکن جدید
+        engine.scanFile(file, true)
+        .then(decodedText => {
+            document.getElementById('loading').style.display = 'none';
+            try {
+                const data = JSON.parse(decodedText);
+                slots[index] = data;
+                document.getElementById(`sc${index}`).className = "slot-card filled";
+                document.getElementById(`u${index}`).innerText = data.customer.name.substring(0,8);
+                document.getElementById('sendBtn').style.display = 'block';
+            } catch(e) {
+                alert("QR کد حاوی دیتای معتبر پيکر نیست.");
+            }
+        })
+        .catch(err => {
+            document.getElementById('loading').style.display = 'none';
+            alert("❌ خطای اسکن: تصویر واضح نیست یا QR پیدا نشد. دوباره عکس بگیرید.");
+            console.error(err);
         });
     }
 
     function sendToGoogle() {
         const name = document.getElementById('pikerName').value;
-        const btn = document.getElementById('sendBtn');
         let totalItems = 0;
         let orders = slots.filter(s => s !== null).length;
         slots.forEach(s => { if(s) Object.values(s.items).forEach(it => totalItems += parseInt(it.quantity)); });
 
-        btn.disabled = true;
-        btn.innerText = "⏳ در حال ثبت...";
-
         fetch(SCRIPT_URL, {
             method: 'POST',
             mode: 'no-cors',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ pikerName: name, totalItems: totalItems, orderCount: orders })
         }).then(() => {
-            alert("✅ ثبت شد: " + name + " (" + totalItems + " قلم)");
+            alert("✅ با موفقیت ثبت شد.");
             location.reload();
-        }).catch(() => {
-            alert("خطا در ارتباط");
-            btn.disabled = false;
-        });
+        }).catch(() => alert("خطا در ارسال"));
     }
-</
+</script>
+</body>
+</html>
