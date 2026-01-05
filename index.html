@@ -3,145 +3,119 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Piker Live Scanner</title>
+    <title>Piker Pro 4.0</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
         :root { --bg: #0f172a; --accent: #38bdf8; --success: #22c55e; }
-        body { font-family: Tahoma, sans-serif; background: var(--bg); color: white; margin: 0; padding: 0; overflow-x: hidden; }
+        body { font-family: Tahoma, sans-serif; background: var(--bg); color: white; margin: 0; padding: 0; }
         .header { background: #000; padding: 15px; text-align: center; border-bottom: 2px solid var(--accent); font-weight: bold; }
-        
-        /* منطقه اسکن زنده */
-        #reader { width: 100%; max-width: 400px; margin: auto; background: black; border-radius: 0 0 20px 20px; overflow: hidden; }
-        
-        .piker-box { padding: 15px; }
-        #pikerName { width: 90%; padding: 12px; border-radius: 8px; border: 1px solid var(--accent); background: #1e293b; color: white; text-align: center; display: block; margin: auto; }
-        
-        .slot-info { display: flex; justify-content: center; gap: 10px; margin: 15px 0; }
-        .slot-dot { width: 12px; height: 12px; border-radius: 50%; background: #334155; }
-        .slot-dot.active { background: var(--success); box-shadow: 0 0 10px var(--success); }
-
-        .container { padding: 10px; }
-        .product-card { background: #1e293b; border-radius: 12px; margin-bottom: 12px; border-right: 5px solid var(--accent); }
-        .product-header { padding: 10px; background: rgba(0,0,0,0.3); font-size: 14px; border-bottom: 1px solid #334155; }
-        .order-row { padding: 10px; display: flex; justify-content: space-between; align-items: center; }
-        .qty { background: #000; padding: 5px 12px; border-radius: 8px; font-weight: bold; font-size: 18px; }
-        
-        #status { text-align: center; padding: 10px; font-size: 13px; color: var(--accent); font-weight: bold; }
-        .submit-btn { background: var(--success); color: white; border: none; padding: 20px; width: 90%; margin: 20px auto; border-radius: 15px; font-weight: bold; display: none; cursor: pointer; }
+        #reader { width: 100%; max-width: 500px; margin: auto; background: #000; }
+        .controls { padding: 15px; text-align: center; }
+        #pikerName { width: 80%; padding: 12px; border-radius: 8px; border: 1px solid var(--accent); background: #1e293b; color: white; text-align: center; margin-bottom: 10px; }
+        .slot-display { display: flex; justify-content: center; gap: 10px; margin: 10px 0; }
+        .slot { width: 40px; height: 40px; border: 2px solid #334155; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+        .slot.active { border-color: var(--success); background: #064e3b; }
+        #status { font-size: 12px; color: var(--accent); padding: 5px; text-align: center; min-height: 20px; }
+        #result-list { padding: 10px; }
+        .product-card { background: #1e293b; border-radius: 10px; margin-bottom: 10px; border-right: 5px solid var(--accent); padding: 10px; }
+        .row { display: flex; justify-content: space-between; align-items: center; margin-top: 5px; border-top: 1px solid #334155; padding-top: 5px; }
+        .submit-btn { background: var(--success); color: white; border: none; padding: 18px; width: 90%; margin: 10px auto; border-radius: 12px; font-weight: bold; display: none; }
     </style>
 </head>
 <body>
 
-<div class="header">اسکنر هوشمند پیکر ⚡</div>
+<div class="header">⚡ PIKER MASTER V4.0</div>
 
 <div id="reader"></div>
 
-<div class="piker-box">
-    <input type="text" id="pikerName" placeholder="نام خود را وارد کنید">
+<div class="controls">
+    <input type="text" id="pikerName" placeholder="نام پیکر را وارد کنید">
+    <div id="status">در حال راه‌اندازی دوربین...</div>
+    <div class="slot-display">
+        <div id="s0" class="slot">۱</div>
+        <div id="s1" class="slot">۲</div>
+        <div id="s2" class="slot">۳</div>
+        <div id="s3" class="slot">۴</div>
+        <div id="s4" class="slot">۵</div>
+    </div>
 </div>
 
-<div id="status">در انتظار دسترسی به دوربین...</div>
-
-<div class="slot-info">
-    <div id="dot0" class="slot-dot"></div>
-    <div id="dot1" class="slot-dot"></div>
-    <div id="dot2" class="slot-dot"></div>
-    <div id="dot3" class="slot-dot"></div>
-    <div id="dot4" class="slot-dot"></div>
-</div>
-
-<div class="container" id="output"></div>
-<button id="sendBtn" class="submit-btn" onclick="uploadData()">🚀 ثبت نهایی در گوگل شیت</button>
+<div id="result-list"></div>
+<button id="sendBtn" class="submit-btn" onclick="sendToSheet()">✅ ثبت در گوگل شیت</button>
 
 <script>
-    let slots = [];
+    let scans = [];
     const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzaaIjPbFOwBwPDPCUAlrFb1eIAAag7LdyRKEn3IB8SOYkkskhc7Zy4JPa8PJqiJEIi/exec';
-    const html5QrCode = new Html5Qrcode("reader");
-
-    // شروع اسکن زنده به محض باز شدن برنامه
-    const config = { fps: 15, qrbox: { width: 250, height: 250 } };
     
-    html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess)
-    .catch(err => {
-        document.getElementById('status').innerText = "❌ خطا در باز کردن دوربین. اجازه دسترسی بدهید.";
-    });
+    const scanner = new Html5Qrcode("reader");
 
-    async function onScanSuccess(decodedText) {
-        if (slots.length >= 5) {
-            alert("حداکثر ۵ فاکتور مجاز است.");
-            return;
-        }
+    // تنظیمات فوق‌حرفه‌ای برای کدهای فشرده
+    const qrConfig = { 
+        fps: 20, 
+        qrbox: (viewWidth, viewHeight) => {
+            let size = Math.min(viewWidth, viewHeight) * 0.8;
+            return { width: size, height: size };
+        },
+        aspectRatio: 1.0
+    };
 
-        // متوقف کردن موقت اسکن برای جلوگیری از تکرار
-        html5QrCode.pause();
-        const status = document.getElementById('status');
-        status.innerText = "⏳ لینک یافت شد! در حال دریافت دیتا...";
+    scanner.start({ facingMode: "environment" }, qrConfig, onScan)
+    .then(() => document.getElementById('status').innerText = "کد را داخل کادر نگه دارید")
+    .catch(err => document.getElementById('status').innerText = "خطا در دوربین: " + err);
+
+    async function onScan(decodedText) {
+        if (scans.length >= 5) return;
+        
+        // جلوگیری از اسکن تکراری پشت سر هم
+        scanner.pause();
+        document.getElementById('status').innerText = "⏳ دریافت اطلاعات فاکتور...";
 
         try {
-            const response = await fetch(`${SCRIPT_URL}?targetUrl=${encodeURIComponent(decodedText)}`);
-            const data = await response.json();
+            const res = await fetch(`${SCRIPT_URL}?targetUrl=${encodeURIComponent(decodedText)}`);
+            const data = await res.json();
 
-            if (data.error) throw new Error("دیتای فاکتور یافت نشد");
+            if(data.error) throw new Error("فاکتور معتبر نیست");
 
-            // ذخیره دیتا
-            slots.push(data);
-            updateSlotsUI();
-            render();
-            
-            status.innerText = "✅ فاکتور " + data.customer.name + " اضافه شد. بعدی را اسکن کنید.";
+            scans.push(data);
+            document.getElementById(`s${scans.length-1}`).classList.add('active');
             document.getElementById('sendBtn').style.display = 'block';
-
-            // ادامه اسکن بعد از ۲ ثانیه
-            setTimeout(() => html5QrCode.resume(), 2000);
-
-        } catch (err) {
-            status.innerText = "❌ خطا در دریافت دیتا. دوباره اسکن کنید.";
-            setTimeout(() => html5QrCode.resume(), 2000);
+            document.getElementById('status').innerText = "✅ فاکتور ثبت شد. بعدی...";
+            
+            render();
+            setTimeout(() => scanner.resume(), 2500); // وقفه برای اسکن بعدی
+        } catch (e) {
+            document.getElementById('status').innerText = "❌ خطا در سرور یا لینک";
+            setTimeout(() => scanner.resume(), 2000);
         }
-    }
-
-    function updateSlotsUI() {
-        slots.forEach((_, i) => {
-            document.getElementById(`dot${i}`).classList.add('active');
-        });
     }
 
     function render() {
-        const out = document.getElementById('output');
+        const out = document.getElementById('result-list');
         out.innerHTML = '';
         let groups = {};
 
-        slots.forEach((data, sIdx) => {
-            const customer = data.customer.name;
-            const inv = data.order.invoiceNumber || data.order.code || "---";
-            data.products.forEach(it => {
-                if (!groups[it.title]) groups[it.title] = { b: it.barcode, list: [] };
-                groups[it.title].list.push({ n: customer, q: it.quantity, inv: inv });
+        scans.forEach(data => {
+            data.products.forEach(p => {
+                if(!groups[p.title]) groups[p.title] = [];
+                groups[p.title].push({ n: data.customer.name, q: p.quantity });
             });
         });
 
-        Object.keys(groups).sort().forEach(title => {
-            const g = groups[title];
-            let h = `<div class="product-card"><div class="product-header">📦 <b>${title}</b></div>`;
-            g.list.forEach(row => {
-                h += `<div class="order-row">
-                    <div><b>${row.n}</b> <div style="font-size:9px; color:#94a3b8">فاکتور: ${row.inv}</div></div>
-                    <div style="display:flex; align-items:center;">
-                        <span class="qty">${row.q}</span>
-                        <input type="checkbox" style="width:20px; height:20px; margin-right:10px;">
-                    </div>
-                </div>`;
+        for (let title in groups) {
+            let h = `<div class="product-card"><b>📦 ${title}</b>`;
+            groups[title].forEach(it => {
+                h += `<div class="row"><span>👤 ${it.n}</span><b style="font-size:18px">${it.q}</b></div>`;
             });
             out.innerHTML += h + `</div>`;
-        });
+        }
     }
 
-    async function uploadData() {
-        const piker = document.getElementById('pikerName').value;
-        if(!piker) return alert("نام پیکر الزامی است");
-
-        const payload = slots.map(s => ({
-            piker: piker,
+    async function sendToSheet() {
+        const name = document.getElementById('pikerName').value;
+        if(!name) return alert("نام پیکر کو؟");
+        
+        const payload = scans.map(s => ({
+            piker: name,
             customer: s.customer.name,
             invoice: s.order.invoiceNumber || s.order.code,
             channel: s.order.channel,
@@ -149,7 +123,7 @@
         }));
 
         await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
-        alert("ثبت شد!");
+        alert("تأیید شد!");
         location.reload();
     }
 </script>
