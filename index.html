@@ -2,117 +2,76 @@
 <html lang="fa" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Piker Master PRO - V5</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Piker Master - Photo Fix</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        :root { --bg: #0f172a; --card: #1e293b; --accent: #38bdf8; --success: #22c55e; --error: #ef4444; }
-        body { font-family: Tahoma, sans-serif; background: var(--bg); color: white; margin: 0; padding: 0; }
-        .header { background: #000; padding: 15px; text-align: center; border-bottom: 2px solid var(--accent); font-weight: bold; }
-        
-        /* منطقه اسکنر */
-        #reader { width: 100%; max-width: 500px; margin: auto; background: #000; border-radius: 0 0 20px 20px; overflow: hidden; }
-        
-        .controls { padding: 15px; text-align: center; }
-        #pikerName { width: 85%; padding: 12px; border-radius: 10px; border: 1px solid var(--accent); background: #1e293b; color: white; text-align: center; font-size: 16px; margin-bottom: 10px; }
-        
-        .slot-group { display: flex; justify-content: center; gap: 8px; margin: 10px 0; }
-        .slot { width: 45px; height: 45px; border: 2px solid #334155; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: bold; transition: 0.3s; }
-        .slot.active { border-color: var(--success); background: #064e3b; box-shadow: 0 0 10px var(--success); }
-        
-        #status { font-size: 13px; color: var(--accent); padding: 10px; min-height: 40px; font-weight: bold; line-height: 1.5; }
-        
-        .container { padding: 10px; }
-        .product-card { background: var(--card); border-radius: 12px; margin-bottom: 15px; border-right: 6px solid var(--accent); overflow: hidden; }
-        .p-header { padding: 10px; background: rgba(0,0,0,0.4); font-size: 14px; border-bottom: 1px solid #334155; }
-        .item-row { padding: 12px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .qty { background: #000; padding: 5px 12px; border-radius: 8px; font-weight: bold; font-size: 18px; border: 1px solid #334155; }
-        
-        .submit-btn { background: var(--success); color: white; border: none; padding: 20px; width: 90%; margin: 15px auto; border-radius: 15px; font-weight: bold; font-size: 18px; display: none; cursor: pointer; }
-        .reset-btn { background: var(--error); color: white; border: none; padding: 8px 15px; border-radius: 8px; margin-top: 10px; cursor: pointer; }
+        :root { --bg: #111827; --card: #1f2937; --accent: #3b82f6; --success: #10b981; }
+        body { font-family: Tahoma; background: var(--bg); color: white; text-align: center; margin: 0; padding: 10px; }
+        .slot-box { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+        .slot { background: var(--card); border: 2px dashed #4b5563; padding: 20px 5px; border-radius: 12px; cursor: pointer; }
+        .slot.filled { border-style: solid; border-color: var(--success); background: #064e3b; }
+        .slot b { font-size: 20px; display: block; }
+        #status { background: #000; padding: 10px; border-radius: 8px; margin: 10px; font-size: 13px; color: var(--accent); min-height: 40px; }
+        .product-card { background: var(--card); border-radius: 10px; margin: 10px 0; padding: 15px; border-right: 5px solid var(--accent); text-align: right; }
+        .row { display: flex; justify-content: space-between; margin-top: 10px; border-top: 1px solid #374151; padding-top: 5px; }
+        .qty { background: #000; padding: 5px 15px; border-radius: 5px; font-weight: bold; font-size: 18px; }
+        input[type="file"] { display: none; }
+        .submit-btn { background: var(--success); color: white; width: 100%; padding: 15px; border: none; border-radius: 10px; font-weight: bold; display: none; margin-top: 20px; }
     </style>
 </head>
 <body>
 
-<div class="header">PIKER MASTER PRO ⚡ نسخه ۵</div>
+<h3>⚡ سیستم ثبت فاکتور (نسخه عکاسی)</h3>
 
-<div id="reader"></div>
+<div id="status">آماده؛ روی شماره ۱ کلیک کنید و عکس بگیرید</div>
 
-<div class="controls">
-    <input type="text" id="pikerName" placeholder="نام پیکر (مثلاً مهدی)">
-    <div id="status">در حال راه‌اندازی دوربین...</div>
-    <div class="slot-group">
-        <div id="s0" class="slot">۱</div>
-        <div id="s1" class="slot">۲</div>
-        <div id="s2" class="slot">۳</div>
-        <div id="s3" class="slot">۴</div>
-        <div id="s4" class="slot">۵</div>
-    </div>
-    <button class="reset-btn" onclick="location.reload()">ریست کل برنامه</button>
+<div class="slot-box">
+    <label class="slot" id="L0"><b>۱</b><input type="file" accept="image/*" capture="environment" onchange="processFile(0, this)"></label>
+    <label class="slot" id="L1"><b>۲</b><input type="file" accept="image/*" capture="environment" onchange="processFile(1, this)"></label>
+    <label class="slot" id="L2"><b>۳</b><input type="file" accept="image/*" capture="environment" onchange="processFile(2, this)"></label>
 </div>
 
-<div class="container" id="output"></div>
-<button id="sendBtn" class="submit-btn" onclick="finalize()">📊 ثبت نهایی در شیت</button>
+<div id="output"></div>
+<button id="sendBtn" class="submit-btn" onclick="sendToSheet()">ثبت نهایی در گوگل شیت</button>
 
 <script>
     let scans = [];
     const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzaaIjPbFOwBwPDPCUAlrFb1eIAAag7LdyRKEn3IB8SOYkkskhc7Zy4JPa8PJqiJEIi/exec';
-    
-    // تنظیمات فوق‌حرفه‌ای برای کدهای شلوغ و متراکم
-    const html5QrCode = new Html5Qrcode("reader");
-    const config = { 
-        fps: 25, 
-        qrbox: (w, h) => { return { width: w * 0.7, height: w * 0.7 } },
-        aspectRatio: 1.0
-    };
+    const scanner = new Html5Qrcode("status"); // مخفی برای پردازش فایلی
 
-    html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess)
-    .then(() => document.getElementById('status').innerText = "کد فاکتور را مقابل دوربین بگیرید")
-    .catch(err => document.getElementById('status').innerText = "خطا در دوربین! دسترسی را چک کنید.");
+    async function processFile(index, input) {
+        const file = input.files[0];
+        if (!file) return;
 
-    async function onScanSuccess(decodedText) {
-        if (scans.length >= 5) return;
-        
-        // متوقف کردن موقت برای جلوگیری از تکرار
-        html5QrCode.pause();
         const status = document.getElementById('status');
-        status.style.color = "var(--accent)";
-        status.innerText = "⏳ لینک شناسایی شد! در حال فراخوانی سرور...";
-
+        status.innerText = "⏳ در حال خواندن QR از روی عکس...";
+        
         try {
-            const response = await fetch(`${SCRIPT_URL}?targetUrl=${encodeURIComponent(decodedText)}`);
-            const rawText = await response.text();
+            // مرحله ۱: تشخیص QR از فایل عکس (بسیار دقیق‌تر از زنده)
+            const decodedUrl = await scanner.scanFile(file, true);
+            status.innerText = "✅ کد خوانده شد. در حال استخراج اطلاعات...";
 
-            // بررسی خطاهای دسترسی گوگل (مشکلی که داشتید)
-            if (rawText.includes("permission") || rawText.includes("Authorization")) {
-                status.style.color = "var(--error)";
-                status.innerText = "❌ خطای دسترسی گوگل! \n در پنل اسکریپت دکمه RUN را بزنید و دسترسی بدهید.";
-                return;
+            // مرحله ۲: فراخوانی گوگل
+            const response = await fetch(`${SCRIPT_URL}?targetUrl=${encodeURIComponent(decodedUrl)}`);
+            const raw = await response.text();
+
+            // بررسی خطای فیلترینگ یا دسترسی
+            if (raw.includes("permission") || raw.includes("Error")) {
+                throw new Error("گوگل به سایت فاکتور دسترسی ندارد (احتمال فیلترینگ)");
             }
 
-            const data = JSON.parse(rawText);
-            if (data.error) throw new Error(data.error);
-
-            // ذخیره دیتا
-            scans.push(data);
-            document.getElementById(`s${scans.length-1}`).classList.add('active');
-            document.getElementById('sendBtn').style.display = 'block';
+            const data = JSON.parse(raw);
+            scans[index] = data;
             
-            status.innerText = "✅ فاکتور " + data.customer.name + " ثبت شد.";
+            document.getElementById(`L${index}`).classList.add('filled');
+            document.getElementById('sendBtn').style.display = 'block';
+            status.innerText = "✅ فاکتور " + data.customer.name + " با موفقیت دریافت شد.";
             render();
 
-            // ۳ ثانیه صبر برای فاکتور بعدی
-            setTimeout(() => {
-                if(scans.length < 5) {
-                    status.innerText = "آماده برای اسکن بعدی...";
-                    html5QrCode.resume();
-                }
-            }, 3000);
-
         } catch (err) {
-            status.style.color = "var(--error)";
-            status.innerText = "❌ خطا در دریافت دیتا: " + err.message;
-            setTimeout(() => html5QrCode.resume(), 3000);
+            console.error(err);
+            status.innerHTML = `<span style="color:#ef4444">❌ خطا: ${err.message}</span><br><small>مطمئن شوید عکس شفاف است</small>`;
         }
     }
 
@@ -122,53 +81,32 @@
         let groups = {};
 
         scans.forEach(data => {
+            if(!data) return;
             data.products.forEach(p => {
                 if(!groups[p.title]) groups[p.title] = [];
                 groups[p.title].push({ n: data.customer.name, q: p.quantity });
             });
         });
 
-        Object.keys(groups).sort().forEach(title => {
-            let h = `<div class="product-card"><div class="p-header"><b>📦 ${title}</b></div>`;
+        for (let title in groups) {
+            let h = `<div class="product-card"><b>📦 ${title}</b>`;
             groups[title].forEach(it => {
-                h += `<div class="item-row">
-                    <span>👤 ${it.n}</span>
-                    <div style="display:flex; align-items:center;">
-                        <span class="qty">${it.q}</span>
-                        <input type="checkbox" style="width:22px; height:22px; margin-right:10px;">
-                    </div>
-                </div>`;
+                h += `<div class="row"><span>${it.n}</span><span class="qty">${it.q}</span></div>`;
             });
             out.innerHTML += h + `</div>`;
-        });
+        }
     }
 
-    async function finalize() {
-        const piker = document.getElementById('pikerName').value;
-        if(!piker) return alert("ابتدا نام خود را بنویسید");
-
-        const status = document.getElementById('status');
-        status.innerText = "📤 در حال ارسال گزارش نهایی به شیت...";
-
-        const payload = scans.map(s => ({
-            piker: piker,
+    async function sendToSheet() {
+        // همان کد قبلی برای ارسال
+        alert("در حال ارسال...");
+        const payload = scans.filter(x => x).map(s => ({
             customer: s.customer.name,
-            invoice: s.order.invoiceNumber || s.order.code,
-            channel: s.order.channel || "وال‌مارکت",
-            itemsCount: s.products.length
+            invoice: s.order.invoiceNumber
         }));
-
-        try {
-            await fetch(SCRIPT_URL, {
-                method: 'POST',
-                mode: 'no-cors',
-                body: JSON.stringify(payload)
-            });
-            alert("✅ گزارش با موفقیت ثبت شد!");
-            location.reload();
-        } catch (e) {
-            alert("خطا در ارسال به شیت");
-        }
+        await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
+        alert("ثبت شد!");
+        location.reload();
     }
 </script>
 </body>
