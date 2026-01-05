@@ -3,99 +3,85 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Piker UI Master - API Pro</title>
+    <title>Piker UI Master - Pro API</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        :root { --bg: #1a202c; --card-bg: #2d3748; --accent: #4299e1; --success: #48bb78; --text: #f7fafc; --gray: #a0aec0; }
-        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 0; user-select: none; }
-        .header { background: linear-gradient(90deg, #1a202c, #000000); padding: 20px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.5); font-weight: bold; font-size: 18px; color: var(--accent); }
-        .piker-box { padding: 10px 15px; }
-        #pikerName { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--accent); background: #1a202c; color: white; text-align: center; }
-        .slot-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 10px; }
-        .slot-card { background: var(--card-bg); border: 2px solid #4a5568; border-radius: 12px; padding: 15px 5px; text-align: center; cursor: pointer; position: relative; }
-        .slot-card.active { border-color: var(--accent); background: #2b6cb0; }
-        .slot-card.filled { border-color: var(--success); background: #22543d; }
-        .slot-card b { font-size: 20px; display: block; }
-        .slot-card span { font-size: 10px; color: var(--gray); display: block; margin-top: 4px; }
+        :root { --bg: #0f172a; --card: #1e293b; --accent: #38bdf8; --success: #22c55e; --text: #f8fafc; }
+        body { font-family: Tahoma, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 0; }
+        .header { background: #000; padding: 15px; text-align: center; border-bottom: 2px solid var(--accent); font-weight: bold; }
+        .piker-box { padding: 15px; }
+        #pikerName { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--accent); background: #1e293b; color: white; text-align: center; }
+        .slot-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 10px; }
+        .slot-card { background: var(--card); border: 2px solid #334155; border-radius: 12px; padding: 15px 5px; text-align: center; cursor: pointer; }
+        .slot-card.active { border-color: var(--accent); background: #0c4a6e; }
+        .slot-card.filled { border-color: var(--success); background: #064e3b; }
         input[type="file"] { display: none; }
         .container { padding: 10px; }
-        .product-card { background: var(--card-bg); border-radius: 12px; margin-bottom: 12px; border-right: 5px solid var(--accent); overflow: hidden; }
-        .product-header { padding: 12px; background: rgba(0,0,0,0.2); }
-        .p-title { font-size: 15px; font-weight: bold; }
-        .order-row { padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.05); }
-        .channel-tag { font-size: 9px; background: #2d3748; padding: 2px 6px; border-radius: 4px; color: var(--accent); border: 1px solid var(--accent); margin-left: 5px; }
-        .qty-badge { background: #000; color: #fff; padding: 5px 12px; border-radius: 6px; font-weight: bold; font-size: 16px; }
-        .submit-btn { background: var(--success); color: white; border: none; padding: 18px; width: calc(100% - 30px); margin: 15px; border-radius: 12px; font-weight: bold; font-size: 16px; display: none; }
-        #loading { display: none; text-align: center; padding: 10px; color: var(--accent); font-weight: bold; }
+        .product-card { background: var(--card); border-radius: 12px; margin-bottom: 12px; border-right: 5px solid var(--accent); overflow: hidden; }
+        .product-header { padding: 12px; background: rgba(0,0,0,0.3); border-bottom: 1px solid #334155; }
+        .order-row { padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .qty-badge { background: #000; color: #fff; padding: 5px 12px; border-radius: 6px; font-weight: bold; font-size: 18px; }
+        #loading { display: none; text-align: center; padding: 15px; color: var(--accent); font-weight: bold; }
+        .submit-btn { background: var(--success); color: white; border: none; padding: 18px; width: calc(100% - 20px); margin: 10px; border-radius: 12px; font-weight: bold; display: none; }
     </style>
 </head>
 <body>
 
-<div class="header">PIKER MASTER PRO ⚡</div>
+<div class="header">PIKER MASTER - VERSION 3.0</div>
 
 <div class="piker-box">
     <input type="text" id="pikerName" placeholder="نام خود را وارد کنید">
 </div>
 
 <div class="slot-container">
-    <label class="slot-card" id="sc0"><b>۱</b><span id="u0">اسکن ۱</span><input type="file" accept="image/*" capture="environment" onchange="processInvoice(0, this)"></label>
-    <label class="slot-card" id="sc1"><b>۲</b><span id="u1">اسکن ۲</span><input type="file" accept="image/*" capture="environment" onchange="processInvoice(1, this)"></label>
-    <label class="slot-card" id="sc2"><b>۳</b><span id="u2">اسکن ۳</span><input type="file" accept="image/*" capture="environment" onchange="processInvoice(2, this)"></label>
-    <label class="slot-card" id="sc3"><b>۴</b><span id="u3">اسکن ۴</span><input type="file" accept="image/*" capture="environment" onchange="processInvoice(3, this)"></label>
-    <label class="slot-card" id="sc4"><b>۵</b><span id="u4">اسکن ۵</span><input type="file" accept="image/*" capture="environment" onchange="processInvoice(4, this)"></label>
-    <div class="slot-card" onclick="location.reload()" style="background:#742a2a; border:none;"><b>✖</b><span>ریست</span></div>
+    <label class="slot-card" id="sc0"><b>۱</b><span id="u0">اسکن</span><input type="file" accept="image/*" capture="environment" onchange="process(0, this)"></label>
+    <label class="slot-card" id="sc1"><b>۲</b><span id="u1">اسکن</span><input type="file" accept="image/*" capture="environment" onchange="process(1, this)"></label>
+    <label class="slot-card" id="sc2"><b>۳</b><span id="u2">اسکن</span><input type="file" accept="image/*" capture="environment" onchange="process(2, this)"></label>
+    <label class="slot-card" id="sc3"><b>۴</b><span id="u3">اسکن</span><input type="file" accept="image/*" capture="environment" onchange="process(3, this)"></label>
+    <label class="slot-card" id="sc4"><b>۵</b><span id="u4">اسکن</span><input type="file" accept="image/*" capture="environment" onchange="process(4, this)"></label>
+    <div class="slot-card" onclick="location.reload()" style="background:#450a0a; border:none;"><b>✖</b><span>ریست</span></div>
 </div>
 
-<div id="loading">⏳ در حال ارتباط با سرور...</div>
-
+<div id="loading">⏳ در حال دریافت دیتای فاکتور...</div>
 <div class="container" id="output"></div>
-
-<button id="sendBtn" class="submit-btn" onclick="sendToGoogle()">📊 ثبت و ارسال به گوگل شیت</button>
+<button id="sendBtn" class="submit-btn" onclick="sendToGoogle()">✅ ثبت نهایی در گوگل شیت</button>
 
 <script>
     let slots = [null, null, null, null, null];
-    const colors = ["#4299e1", "#f56565", "#48bb78", "#ecc94b", "#9f7aea"];
+    const colors = ["#38bdf8", "#fb7185", "#4ade80", "#fbbf24", "#a78bfa"];
     const engine = new Html5Qrcode("output");
     
-    // لینک گوگل اسکریپت شما
+    // مهم: این لینک گوگل اسکریپت شماست
     const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw0Kk8YRlZBmoY0ciF9_f8uQRWCWRmYvO_SObsVnL1_INd8AcFuj8Ve0I68Pj5jg6y0/exec';
 
-    async function processInvoice(index, input) {
+    async function process(index, input) {
         const file = input.files[0];
         if (!file) return;
 
         const loading = document.getElementById('loading');
         const card = document.getElementById(`sc${index}`);
-        
         loading.style.display = 'block';
         card.classList.add('active');
 
         try {
-            // ۱. خواندن متن از QR
+            // ۱. خواندن URL از QR
             const decodedUrl = await engine.scanFile(file, true);
-            console.log("URL Found:", decodedUrl);
-
-            // ۲. دریافت دیتا با استفاده از یک Proxy برای دور زدن CORS
-            // ما از allorigins استفاده می‌کنیم که دیتای URL را برای ما می‌گیرد
-            const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(decodedUrl)}`;
-            const response = await fetch(proxyUrl);
-            const proxyData = await response.json();
             
-            // دیتای واقعی داخل فیلد contents است که باید Parse شود
-            const data = JSON.parse(proxyData.contents);
+            // ۲. ارسال URL به گوگل برای دریافت دیتا (دور زدن CORS)
+            const response = await fetch(SCRIPT_URL + "?targetUrl=" + encodeURIComponent(decodedUrl));
+            const data = await response.json();
 
-            // ۳. ذخیره در اسلات
+            if (data.error) throw new Error(data.error);
+
+            // ۳. ذخیره و نمایش
             slots[index] = data;
-            
             card.className = "slot-card filled";
-            document.getElementById(`u${index}`).innerText = data.customer.name.split(' ')[0];
+            document.getElementById(`u${index}`).innerText = data.customer.name.substring(0, 8);
             loading.style.display = 'none';
             document.getElementById('sendBtn').style.display = 'block';
-            
             render();
         } catch (err) {
-            console.error(err);
-            alert("❌ خطا در خواندن یا دریافت دیتا. مطمئن شوید QR کد صحیح است.");
+            alert("خطا: " + err.message);
             loading.style.display = 'none';
             card.classList.remove('active');
         }
@@ -113,9 +99,8 @@
             const invNum = data.order.invoiceNumber || data.order.code || "---";
 
             data.products.forEach(it => {
-                const title = it.title;
-                if (!groups[title]) groups[title] = { b: it.barcode, instances: [] };
-                groups[title].instances.push({ 
+                if (!groups[it.title]) groups[it.title] = { b: it.barcode, instances: [] };
+                groups[it.title].instances.push({ 
                     n: customer, q: it.quantity, c: colors[sIdx], ch: channel, inv: invNum 
                 });
             });
@@ -125,20 +110,19 @@
             const g = groups[title];
             let h = `<div class="product-card">
                 <div class="product-header">
-                    <div class="p-title">📦 ${title}</div>
-                    <div style="font-size:10px; color:var(--accent)">بارکد: ${g.b}</div>
+                    <div style="font-weight:bold;">📦 ${title}</div>
+                    <div style="font-size:10px; color:var(--accent)">${g.b}</div>
                 </div>`;
-            
             g.instances.forEach(row => {
                 h += `<div class="order-row" style="border-right: 4px solid ${row.c}">
                     <div>
-                        <span class="channel-tag">${row.ch}</span>
-                        <span style="color:${row.c}; font-size:13px; font-weight:bold;">${row.n}</span>
-                        <div style="font-size:9px; color:var(--gray); margin-top:2px;">فاکتور: ${row.inv}</div>
+                        <span style="font-size:10px; color:var(--accent)">[${row.ch}]</span>
+                        <span style="color:${row.c}; font-weight:bold; font-size:13px;">${row.n}</span>
+                        <div style="font-size:9px; color:#94a3b8;">فاکتور: ${row.inv}</div>
                     </div>
                     <div style="display:flex; align-items:center;">
                         <span class="qty-badge">${row.q}</span>
-                        <input type="checkbox" style="width:22px; height:22px; margin-right:10px;">
+                        <input type="checkbox" style="width:20px; height:20px; margin-right:8px;">
                     </div>
                 </div>`;
             });
@@ -146,29 +130,7 @@
         });
     }
 
-    function sendToGoogle() {
-        const name = document.getElementById('pikerName').value;
-        if(!name) return alert("لطفاً نام پیکر را وارد کنید");
-
-        const summary = slots.filter(s => s !== null).map(s => ({
-            piker: name,
-            customer: s.customer.name,
-            invoice: s.order.invoiceNumber || s.order.code,
-            channel: s.order.channel,
-            itemsCount: s.products.length,
-            timestamp: new Date().toLocaleString('fa-IR')
-        }));
-
-        // ارسال به گوگل (ارسال اولین رکورد یا کل لیست بستگی به تنظیمات اسکریپت شما دارد)
-        fetch(SCRIPT_URL, {
-            method: 'POST',
-            mode: 'no-cors',
-            body: JSON.stringify(summary)
-        }).then(() => {
-            alert("✅ اطلاعات در گوگل شیت ثبت شد.");
-            location.reload();
-        }).catch(() => alert("خطا در ارسال به گوگل"));
-    }
+    // تابع ارسال به گوگل شیت همان قبلی بماند
 </script>
 </body>
 </html>
