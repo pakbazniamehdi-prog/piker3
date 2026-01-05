@@ -3,87 +3,94 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Piker UI Master - Pro API</title>
+    <title>Piker Master PRO 3.0</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
         :root { --bg: #0f172a; --card: #1e293b; --accent: #38bdf8; --success: #22c55e; --text: #f8fafc; }
-        body { font-family: Tahoma, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 0; }
-        .header { background: #000; padding: 15px; text-align: center; border-bottom: 2px solid var(--accent); font-weight: bold; }
+        body { font-family: Tahoma, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 0; user-select: none; }
+        .header { background: #000; padding: 20px; text-align: center; border-bottom: 2px solid var(--accent); font-weight: bold; font-size: 18px; }
         .piker-box { padding: 15px; }
-        #pikerName { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--accent); background: #1e293b; color: white; text-align: center; }
+        #pikerName { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--accent); background: #1e293b; color: white; text-align: center; font-size: 16px; outline: none; }
         .slot-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 10px; }
-        .slot-card { background: var(--card); border: 2px solid #334155; border-radius: 12px; padding: 15px 5px; text-align: center; cursor: pointer; }
+        .slot-card { background: var(--card); border: 2px solid #334155; border-radius: 12px; padding: 15px 5px; text-align: center; cursor: pointer; transition: 0.3s; }
         .slot-card.active { border-color: var(--accent); background: #0c4a6e; }
         .slot-card.filled { border-color: var(--success); background: #064e3b; }
+        .slot-card b { font-size: 20px; display: block; }
+        .slot-card span { font-size: 10px; color: #94a3b8; display: block; margin-top: 5px; }
         input[type="file"] { display: none; }
         .container { padding: 10px; }
-        .product-card { background: var(--card); border-radius: 12px; margin-bottom: 12px; border-right: 5px solid var(--accent); overflow: hidden; }
-        .product-header { padding: 12px; background: rgba(0,0,0,0.3); border-bottom: 1px solid #334155; }
-        .order-row { padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .qty-badge { background: #000; color: #fff; padding: 5px 12px; border-radius: 6px; font-weight: bold; font-size: 18px; }
-        #loading { display: none; text-align: center; padding: 15px; color: var(--accent); font-weight: bold; }
-        .submit-btn { background: var(--success); color: white; border: none; padding: 18px; width: calc(100% - 20px); margin: 10px; border-radius: 12px; font-weight: bold; display: none; }
+        .product-card { background: var(--card); border-radius: 12px; margin-bottom: 15px; border-right: 6px solid var(--accent); overflow: hidden; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3); }
+        .product-header { padding: 12px; background: rgba(0,0,0,0.4); border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; }
+        .order-row { padding: 12px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .qty-badge { background: #000; color: #fff; padding: 6px 14px; border-radius: 8px; font-weight: bold; font-size: 20px; border: 1px solid #334155; }
+        #status { text-align: center; padding: 10px; font-size: 13px; color: var(--accent); min-height: 24px; font-weight: bold; }
+        .submit-btn { background: var(--success); color: white; border: none; padding: 20px; width: calc(100% - 20px); margin: 10px; border-radius: 15px; font-weight: bold; font-size: 18px; display: none; cursor: pointer; box-shadow: 0 4px 14px 0 rgba(34, 197, 94, 0.39); }
     </style>
 </head>
 <body>
 
-<div class="header">PIKER MASTER - VERSION 3.0</div>
+<div class="header">PIKER MASTER PRO ⚡</div>
 
 <div class="piker-box">
     <input type="text" id="pikerName" placeholder="نام خود را وارد کنید">
 </div>
 
 <div class="slot-container">
-    <label class="slot-card" id="sc0"><b>۱</b><span id="u0">اسکن</span><input type="file" accept="image/*" capture="environment" onchange="process(0, this)"></label>
-    <label class="slot-card" id="sc1"><b>۲</b><span id="u1">اسکن</span><input type="file" accept="image/*" capture="environment" onchange="process(1, this)"></label>
-    <label class="slot-card" id="sc2"><b>۳</b><span id="u2">اسکن</span><input type="file" accept="image/*" capture="environment" onchange="process(2, this)"></label>
-    <label class="slot-card" id="sc3"><b>۴</b><span id="u3">اسکن</span><input type="file" accept="image/*" capture="environment" onchange="process(3, this)"></label>
-    <label class="slot-card" id="sc4"><b>۵</b><span id="u4">اسکن</span><input type="file" accept="image/*" capture="environment" onchange="process(4, this)"></label>
+    <label class="slot-card" id="sc0"><b>۱</b><span id="u0">اسکن</span><input type="file" accept="image/*" capture="environment" onchange="handleScan(0, this)"></label>
+    <label class="slot-card" id="sc1"><b>۲</b><span id="u1">اسکن</span><input type="file" accept="image/*" capture="environment" onchange="handleScan(1, this)"></label>
+    <label class="slot-card" id="sc2"><b>۳</b><span id="u2">اسکن</span><input type="file" accept="image/*" capture="environment" onchange="handleScan(2, this)"></label>
+    <label class="slot-card" id="sc3"><b>۴</b><span id="u3">اسکن</span><input type="file" accept="image/*" capture="environment" onchange="handleScan(3, this)"></label>
+    <label class="slot-card" id="sc4"><b>۵</b><span id="u4">اسکن</span><input type="file" accept="image/*" capture="environment" onchange="handleScan(4, this)"></label>
     <div class="slot-card" onclick="location.reload()" style="background:#450a0a; border:none;"><b>✖</b><span>ریست</span></div>
 </div>
 
-<div id="loading">⏳ در حال دریافت دیتای فاکتور...</div>
+<div id="status">آماده برای اسکن فاکتور...</div>
 <div class="container" id="output"></div>
-<button id="sendBtn" class="submit-btn" onclick="sendToGoogle()">✅ ثبت نهایی در گوگل شیت</button>
+<button id="sendBtn" class="submit-btn" onclick="uploadToGoogle()">📊 ثبت نهایی و ارسال به شیت</button>
 
 <script>
     let slots = [null, null, null, null, null];
     const colors = ["#38bdf8", "#fb7185", "#4ade80", "#fbbf24", "#a78bfa"];
     const engine = new Html5Qrcode("output");
     
-    // مهم: این لینک گوگل اسکریپت شماست
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw0Kk8YRlZBmoY0ciF9_f8uQRWCWRmYvO_SObsVnL1_INd8AcFuj8Ve0I68Pj5jg6y0/exec';
+    // آدرس اختصاصی گوگل اسکریپت شما
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzaaIjPbFOwBwPDPCUAlrFb1eIAAag7LdyRKEn3IB8SOYkkskhc7Zy4JPa8PJqiJEIi/exec';
 
-    async function process(index, input) {
+    async function handleScan(index, input) {
         const file = input.files[0];
         if (!file) return;
 
-        const loading = document.getElementById('loading');
+        const status = document.getElementById('status');
         const card = document.getElementById(`sc${index}`);
-        loading.style.display = 'block';
+        status.innerText = "⏳ در حال استخراج دیتای فاکتور " + (index+1) + "...";
         card.classList.add('active');
 
         try {
-            // ۱. خواندن URL از QR
+            // ۱. خواندن URL از QR کد
             const decodedUrl = await engine.scanFile(file, true);
             
-            // ۲. ارسال URL به گوگل برای دریافت دیتا (دور زدن CORS)
-            const response = await fetch(SCRIPT_URL + "?targetUrl=" + encodeURIComponent(decodedUrl));
+            // ۲. استفاده از گوگل اسکریپت به عنوان پروکسی (CORS Bypass)
+            const response = await fetch(`${SCRIPT_URL}?targetUrl=${encodeURIComponent(decodedUrl)}`);
             const data = await response.json();
 
-            if (data.error) throw new Error(data.error);
+            if (data.error) throw new Error("دیتای فاکتور دریافت نشد");
 
-            // ۳. ذخیره و نمایش
+            // ۳. ذخیره دیتا در اسلات مربوطه
             slots[index] = data;
             card.className = "slot-card filled";
-            document.getElementById(`u${index}`).innerText = data.customer.name.substring(0, 8);
-            loading.style.display = 'none';
+            
+            // نمایش نام مشتری در اسلات
+            const shortName = data.customer.name.split(' ')[0].substring(0, 8);
+            card.querySelector('span').innerText = shortName;
+
+            status.innerText = "✅ فاکتور " + shortName + " با موفقیت اضافه شد.";
             document.getElementById('sendBtn').style.display = 'block';
             render();
         } catch (err) {
-            alert("خطا: " + err.message);
-            loading.style.display = 'none';
+            console.error(err);
+            status.innerText = "❌ خطا در اسکن یا دریافت دیتا";
             card.classList.remove('active');
+            alert("خطا: تصویر واضح نیست یا سرور پاسخ نمی‌دهد.");
         }
     }
 
@@ -99,30 +106,33 @@
             const invNum = data.order.invoiceNumber || data.order.code || "---";
 
             data.products.forEach(it => {
-                if (!groups[it.title]) groups[it.title] = { b: it.barcode, instances: [] };
-                groups[it.title].instances.push({ 
+                const title = it.title;
+                if (!groups[title]) groups[title] = { b: it.barcode, instances: [] };
+                groups[title].instances.push({ 
                     n: customer, q: it.quantity, c: colors[sIdx], ch: channel, inv: invNum 
                 });
             });
         });
 
+        // مرتب‌سازی الفبایی محصولات
         Object.keys(groups).sort().forEach(title => {
             const g = groups[title];
             let h = `<div class="product-card">
                 <div class="product-header">
-                    <div style="font-weight:bold;">📦 ${title}</div>
+                    <div style="font-weight:bold; font-size:15px;">📦 ${title}</div>
                     <div style="font-size:10px; color:var(--accent)">${g.b}</div>
                 </div>`;
+            
             g.instances.forEach(row => {
                 h += `<div class="order-row" style="border-right: 4px solid ${row.c}">
-                    <div>
-                        <span style="font-size:10px; color:var(--accent)">[${row.ch}]</span>
-                        <span style="color:${row.c}; font-weight:bold; font-size:13px;">${row.n}</span>
-                        <div style="font-size:9px; color:#94a3b8;">فاکتور: ${row.inv}</div>
+                    <div style="flex-grow:1">
+                        <span style="font-size:10px; color:var(--accent); border:1px solid; padding:1px 4px; border-radius:4px;">${row.ch}</span>
+                        <span style="color:${row.c}; font-weight:bold; margin-right:5px;">${row.n}</span>
+                        <div style="font-size:9px; color:#94a3b8; margin-top:3px;">فاکتور: ${row.inv}</div>
                     </div>
                     <div style="display:flex; align-items:center;">
                         <span class="qty-badge">${row.q}</span>
-                        <input type="checkbox" style="width:20px; height:20px; margin-right:8px;">
+                        <input type="checkbox" style="width:24px; height:24px; margin-right:12px; accent-color:var(--success);">
                     </div>
                 </div>`;
             });
@@ -130,7 +140,34 @@
         });
     }
 
-    // تابع ارسال به گوگل شیت همان قبلی بماند
+    async function uploadToGoogle() {
+        const piker = document.getElementById('pikerName').value;
+        if(!piker) return alert("⚠️ لطفاً ابتدا نام پیکر را وارد کنید.");
+
+        const status = document.getElementById('status');
+        status.innerText = "📤 در حال ثبت نهایی در گوگل شیت...";
+
+        const payload = slots.filter(s => s !== null).map(s => ({
+            piker: piker,
+            customer: s.customer.name,
+            invoice: s.order.invoiceNumber || s.order.code,
+            channel: s.order.channel,
+            itemsCount: s.products.length
+        }));
+
+        try {
+            await fetch(SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                body: JSON.stringify(payload)
+            });
+            alert("✅ گزارش با موفقیت در گوگل شیت ثبت شد.");
+            location.reload();
+        } catch (e) {
+            alert("❌ خطا در ارسال اطلاعات به گوگل شیت.");
+            status.innerText = "خطا در ارسال.";
+        }
+    }
 </script>
 </body>
 </html>
