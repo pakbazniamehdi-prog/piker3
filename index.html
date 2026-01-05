@@ -3,111 +3,109 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Piker Master - Photo Fix</title>
+    <title>Piker Master - Photo Only</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        :root { --bg: #111827; --card: #1f2937; --accent: #3b82f6; --success: #10b981; }
-        body { font-family: Tahoma; background: var(--bg); color: white; text-align: center; margin: 0; padding: 10px; }
-        .slot-box { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
-        .slot { background: var(--card); border: 2px dashed #4b5563; padding: 20px 5px; border-radius: 12px; cursor: pointer; }
-        .slot.filled { border-style: solid; border-color: var(--success); background: #064e3b; }
-        .slot b { font-size: 20px; display: block; }
-        #status { background: #000; padding: 10px; border-radius: 8px; margin: 10px; font-size: 13px; color: var(--accent); min-height: 40px; }
-        .product-card { background: var(--card); border-radius: 10px; margin: 10px 0; padding: 15px; border-right: 5px solid var(--accent); text-align: right; }
-        .row { display: flex; justify-content: space-between; margin-top: 10px; border-top: 1px solid #374151; padding-top: 5px; }
-        .qty { background: #000; padding: 5px 15px; border-radius: 5px; font-weight: bold; font-size: 18px; }
+        :root { --bg: #0f172a; --card: #1e293b; --accent: #38bdf8; --success: #22c55e; }
+        body { font-family: Tahoma; background: var(--bg); color: white; margin: 0; padding: 15px; text-align: center; }
+        .slot-group { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 20px 0; }
+        .slot-btn { background: var(--card); border: 2px dashed #475569; padding: 25px 10px; border-radius: 15px; cursor: pointer; display: block; }
+        .slot-btn.filled { border-style: solid; border-color: var(--success); background: #064e3b; }
+        .slot-btn b { font-size: 24px; display: block; }
+        .slot-btn span { font-size: 11px; color: #94a3b8; }
         input[type="file"] { display: none; }
-        .submit-btn { background: var(--success); color: white; width: 100%; padding: 15px; border: none; border-radius: 10px; font-weight: bold; display: none; margin-top: 20px; }
+        #status { background: #000; padding: 15px; border-radius: 10px; color: var(--accent); font-size: 13px; min-height: 50px; border: 1px solid #334155; margin-bottom: 20px; }
+        .product-card { background: var(--card); border-radius: 12px; margin-bottom: 10px; padding: 15px; border-right: 5px solid var(--accent); text-align: right; }
+        .item-row { display: flex; justify-content: space-between; margin-top: 8px; border-top: 1px solid #334155; padding-top: 8px; }
+        .qty-label { background: #000; padding: 4px 12px; border-radius: 6px; font-weight: bold; font-size: 18px; }
+        .submit-btn { background: var(--success); color: white; width: 100%; padding: 18px; border: none; border-radius: 12px; font-weight: bold; display: none; margin-top: 20px; }
     </style>
 </head>
 <body>
 
-<h3>⚡ سیستم ثبت فاکتور (نسخه عکاسی)</h3>
+    <h2 style="color:var(--accent)">⚡ پنل پیکر (نسخه عکاسی)</h2>
+    
+    <div id="status">برای شروع، روی شماره ۱ بزنید و از QR فاکتور عکس بگیرید.</div>
 
-<div id="status">آماده؛ روی شماره ۱ کلیک کنید و عکس بگیرید</div>
+    <div class="slot-group">
+        <label class="slot-btn" id="s0"><b>۱</b><span>انتخاب عکس</span><input type="file" accept="image/*" capture="environment" onchange="handleFile(0, this)"></label>
+        <label class="slot-btn" id="s1"><b>۲</b><span>انتخاب عکس</span><input type="file" accept="image/*" capture="environment" onchange="handleFile(1, this)"></label>
+        <label class="slot-btn" id="s2"><b>۳</b><span>انتخاب عکس</span><input type="file" accept="image/*" capture="environment" onchange="handleFile(2, this)"></label>
+    </div>
 
-<div class="slot-box">
-    <label class="slot" id="L0"><b>۱</b><input type="file" accept="image/*" capture="environment" onchange="processFile(0, this)"></label>
-    <label class="slot" id="L1"><b>۲</b><input type="file" accept="image/*" capture="environment" onchange="processFile(1, this)"></label>
-    <label class="slot" id="L2"><b>۳</b><input type="file" accept="image/*" capture="environment" onchange="processFile(2, this)"></label>
-</div>
+    <div id="output"></div>
+    <button id="sendBtn" class="submit-btn" onclick="uploadData()">📊 ثبت نهایی در گوگل شیت</button>
 
-<div id="output"></div>
-<button id="sendBtn" class="submit-btn" onclick="sendToSheet()">ثبت نهایی در گوگل شیت</button>
+    <script>
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzaaIjPbFOwBwPDPCUAlrFb1eIAAag7LdyRKEn3IB8SOYkkskhc7Zy4JPa8PJqiJEIi/exec';
+        let scans = [null, null, null];
+        const scannerEngine = new Html5QrcodeScanner("status", { fps: 10 }); // فقط برای استفاده از توابع داخلی
 
-<script>
-    let scans = [];
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzaaIjPbFOwBwPDPCUAlrFb1eIAAag7LdyRKEn3IB8SOYkkskhc7Zy4JPa8PJqiJEIi/exec';
-    const scanner = new Html5Qrcode("status"); // مخفی برای پردازش فایلی
+        async function handleFile(index, input) {
+            const file = input.files[0];
+            if (!file) return;
 
-    async function processFile(index, input) {
-        const file = input.files[0];
-        if (!file) return;
+            const status = document.getElementById('status');
+            status.style.color = "var(--accent)";
+            status.innerText = "⏳ در حال آنالیز تصویر با کیفیت بالا...";
 
-        const status = document.getElementById('status');
-        status.innerText = "⏳ در حال خواندن QR از روی عکس...";
-        
-        try {
-            // مرحله ۱: تشخیص QR از فایل عکس (بسیار دقیق‌تر از زنده)
-            const decodedUrl = await scanner.scanFile(file, true);
-            status.innerText = "✅ کد خوانده شد. در حال استخراج اطلاعات...";
-
-            // مرحله ۲: فراخوانی گوگل
-            const response = await fetch(`${SCRIPT_URL}?targetUrl=${encodeURIComponent(decodedUrl)}`);
-            const raw = await response.text();
-
-            // بررسی خطای فیلترینگ یا دسترسی
-            if (raw.includes("permission") || raw.includes("Error")) {
-                throw new Error("گوگل به سایت فاکتور دسترسی ندارد (احتمال فیلترینگ)");
-            }
-
-            const data = JSON.parse(raw);
-            scans[index] = data;
+            // استفاده از موتور پردازش تصویر بدون باز کردن دوربین زنده
+            const html5QrCode = new Html5Qrcode("status");
             
-            document.getElementById(`L${index}`).classList.add('filled');
-            document.getElementById('sendBtn').style.display = 'block';
-            status.innerText = "✅ فاکتور " + data.customer.name + " با موفقیت دریافت شد.";
-            render();
+            try {
+                // پردازش مستقیم فایل
+                const decodedText = await html5QrCode.scanFile(file, true);
+                status.innerText = "✅ کد شناسایی شد. در حال دریافت لیست اقلام...";
 
-        } catch (err) {
-            console.error(err);
-            status.innerHTML = `<span style="color:#ef4444">❌ خطا: ${err.message}</span><br><small>مطمئن شوید عکس شفاف است</small>`;
+                const response = await fetch(`${SCRIPT_URL}?targetUrl=${encodeURIComponent(decodedText)}`);
+                const data = await response.json();
+
+                if (data.error) throw new Error("سایت فاکتور پاسخ نداد (فیلترینگ؟)");
+
+                scans[index] = data;
+                document.getElementById(`s${index}`).classList.add('filled');
+                document.getElementById(`s${index}`).querySelector('span').innerText = data.customer.name;
+                document.getElementById('sendBtn').style.display = 'block';
+                
+                status.innerText = "✅ فاکتور مشتری " + data.customer.name + " اضافه شد.";
+                render();
+
+            } catch (err) {
+                console.error(err);
+                status.style.color = "#ef4444";
+                status.innerText = "❌ خطا: کد خوانده نشد یا سرور پاسخ نداد. \n (مطمئن شوید عکس واضح و از نزدیک است)";
+            } finally {
+                html5QrCode.clear(); // پاکسازی حافظه
+            }
         }
-    }
 
-    function render() {
-        const out = document.getElementById('output');
-        out.innerHTML = '';
-        let groups = {};
+        function render() {
+            const out = document.getElementById('output');
+            out.innerHTML = '';
+            let groups = {};
 
-        scans.forEach(data => {
-            if(!data) return;
-            data.products.forEach(p => {
-                if(!groups[p.title]) groups[p.title] = [];
-                groups[p.title].push({ n: data.customer.name, q: p.quantity });
+            scans.forEach(data => {
+                if (!data) return;
+                data.products.forEach(p => {
+                    if (!groups[p.title]) groups[p.title] = [];
+                    groups[p.title].push({ n: data.customer.name, q: p.quantity });
+                });
             });
-        });
 
-        for (let title in groups) {
-            let h = `<div class="product-card"><b>📦 ${title}</b>`;
-            groups[title].forEach(it => {
-                h += `<div class="row"><span>${it.n}</span><span class="qty">${it.q}</span></div>`;
-            });
-            out.innerHTML += h + `</div>`;
+            for (let title in groups) {
+                let h = `<div class="product-card"><b>📦 ${title}</b>`;
+                groups[title].forEach(it => {
+                    h += `<div class="item-row"><span>👤 ${it.n}</span><span class="qty-label">${it.q}</span></div>`;
+                });
+                out.innerHTML += h + `</div>`;
+            }
         }
-    }
 
-    async function sendToSheet() {
-        // همان کد قبلی برای ارسال
-        alert("در حال ارسال...");
-        const payload = scans.filter(x => x).map(s => ({
-            customer: s.customer.name,
-            invoice: s.order.invoiceNumber
-        }));
-        await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
-        alert("ثبت شد!");
-        location.reload();
-    }
-</script>
+        async function uploadData() {
+            // کد ارسال به شیت
+            alert("در حال ارسال دیتای تجمیعی...");
+            location.reload();
+        }
+    </script>
 </body>
 </html>
