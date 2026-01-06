@@ -2,273 +2,91 @@
 <html lang="fa" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Piker Master PRO - Final Edition</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Piker Debugger V7</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        :root {
-            --bg: #0f172a;
-            --card: #1e293b;
-            --accent: #38bdf8;
-            --success: #22c55e;
-            --error: #ef4444;
-            --text: #f1f5f9;
-        }
-
-        body {
-            font-family: Tahoma, sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            margin: 0;
-            padding: 10px;
-            direction: rtl;
-        }
-
-        .header {
-            background: linear-gradient(90deg, #1e293b, #0f172a);
-            padding: 15px;
-            border-radius: 12px;
-            text-align: center;
-            font-weight: bold;
-            border-bottom: 2px solid var(--accent);
-            margin-bottom: 15px;
-        }
-
-        .piker-box { margin-bottom: 15px; }
-        #pikerName {
-            width: 100%;
-            padding: 12px;
-            border-radius: 10px;
-            border: 1px solid #334155;
-            background: var(--card);
-            color: white;
-            text-align: center;
-            box-sizing: border-box;
-        }
-
-        .slot-container {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-
-        .slot {
-            background: var(--card);
-            border: 2px dashed #475569;
-            padding: 15px 5px;
-            border-radius: 12px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .slot.filled {
-            background: #064e3b;
-            border-style: solid;
-            border-color: var(--success);
-        }
-
-        .slot b { font-size: 20px; display: block; }
-        .slot span { font-size: 10px; color: #94a3b8; display: block; margin-top: 5px; }
-
-        #status {
-            background: #000;
-            padding: 12px;
-            border-radius: 10px;
-            color: var(--accent);
-            font-size: 13px;
-            margin-bottom: 15px;
-            min-height: 40px;
-            border: 1px solid #334155;
-        }
-
-        .product-card {
-            background: var(--card);
-            border-radius: 15px;
-            margin-bottom: 12px;
-            padding: 15px;
-            border-right: 6px solid var(--accent);
-            text-align: right;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        }
-
-        .product-title { font-weight: bold; font-size: 16px; margin-bottom: 10px; color: #fff; }
-
-        .item-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px 0;
-            border-top: 1px solid #334155;
-        }
-
-        .qty-badge {
-            background: #000;
-            color: var(--success);
-            padding: 4px 12px;
-            border-radius: 8px;
-            font-weight: bold;
-            font-size: 18px;
-        }
-
-        .submit-btn {
-            background: var(--success);
-            color: white;
-            border: none;
-            padding: 18px;
-            width: 100%;
-            border-radius: 12px;
-            font-weight: bold;
-            font-size: 16px;
-            display: none;
-            margin-top: 20px;
-            cursor: pointer;
-        }
-
+        body { font-family: Tahoma; background: #0f172a; color: white; text-align: center; padding: 10px; }
+        #status { background: #000; padding: 15px; border-radius: 10px; color: #38bdf8; font-size: 12px; margin-bottom: 10px; border: 1px solid #334155; word-break: break-all; }
+        .slot-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .slot { background: #1e293b; border: 2px dashed #475569; padding: 20px 5px; border-radius: 12px; cursor: pointer; }
+        .slot.active { border-color: #38bdf8; background: #0c4a6e; }
         input[type="file"] { display: none; }
+        #raw-data-debug { background: #1e293b; color: #fbbf24; text-align: left; padding: 10px; font-family: monospace; font-size: 10px; border-radius: 8px; margin-top: 20px; display: none; overflow: auto; max-height: 200px; }
     </style>
 </head>
 <body>
 
-    <div class="header">⚡ سیستم پیکر هوشمند (آلکوری)</div>
-
-    <div class="piker-box">
-        <input type="text" id="pikerName" placeholder="نام خود را وارد کنید">
-    </div>
-
-    <div id="status">آماده اسکن؛ روی یکی از شماره‌های زیر بزنید</div>
+    <h3 style="color:#38bdf8">🚀 عیب‌یاب نهایی سیستم</h3>
+    <div id="status">روی شماره ۱ بزنید و عکس فاکتور بگیرید</div>
 
     <div class="slot-container">
-        <label class="slot" id="s0"><b>۱</b><span>اسکن</span><input type="file" accept="image/*" capture="environment" onchange="process(0, this)"></label>
-        <label class="slot" id="s1"><b>۲</b><span>اسکن</span><input type="file" accept="image/*" capture="environment" onchange="process(1, this)"></label>
-        <label class="slot" id="s2"><b>۳</b><span>اسکن</span><input type="file" accept="image/*" capture="environment" onchange="process(2, this)"></label>
-        <label class="slot" id="s3"><b>۴</b><span>اسکن</span><input type="file" accept="image/*" capture="environment" onchange="process(3, this)"></label>
-        <label class="slot" id="s4"><b>۵</b><span>اسکن</span><input type="file" accept="image/*" capture="environment" onchange="process(4, this)"></label>
-        <div class="slot" onclick="location.reload()" style="background:#450a0a; border-color:#f87171"><b>✖</b><span>ریست</span></div>
+        <label class="slot" id="s0"><b>۱</b><input type="file" accept="image/*" capture="environment" onchange="debugProcess(0, this)"></label>
+        <div class="slot" onclick="location.reload()"><b>✖</b></div>
     </div>
 
     <div id="output"></div>
-    
-    <button id="sendBtn" class="submit-btn" onclick="sendToGoogle()">📊 ثبت و ارسال نهایی</button>
+    <div id="raw-data-debug"></div>
 
     <script>
-        let slots = [null, null, null, null, null];
-        const scannerEngine = new Html5Qrcode("status");
-        // لینک اسکریپت شما
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw0Kk8YRlZBmoY0ciF9_f8uQRWCWRmYvO_SObsVnL1_INd8AcFuj8Ve0I68Pj5jg6y0/exec';
+        const engine = new Html5Qrcode("status");
 
-        async function process(index, input) {
+        async function debugProcess(index, input) {
             const file = input.files[0];
             if (!file) return;
 
             const status = document.getElementById('status');
-            status.style.color = "var(--accent)";
-            status.innerText = "⏳ در حال پردازش تصویر و دریافت دیتا...";
+            const debugBox = document.getElementById('raw-data-debug');
+            status.innerText = "⏳ ۱. در حال استخراج لینک...";
 
             try {
-                // ۱. استخراج لینک از QR
-                const decodedUrl = await scannerEngine.scanFile(file, true);
+                // ۱. استخراج لینک
+                const url = await engine.scanFile(file, true);
+                status.innerText = "🔗 لینک استخراج شد: " + url;
+
+                // ۲. تلاش برای دریافت دیتا با پروکسی متفاوت
+                status.innerText = "⏳ ۲. در حال دریافت دیتا از آلکوری...";
+                const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
                 
-                // ۲. فراخوانی دیتا با پروکسی جهت دور زدن CORS و فیلترینگ
-                const proxyUrl = "https://api.allorigins.win/get?url=" + encodeURIComponent(decodedUrl);
                 const response = await fetch(proxyUrl);
-                if (!response.ok) throw new Error("ارتباط با سرور برقرار نشد");
-                
                 const wrapper = await response.json();
+                
+                // نمایش دیتای خام برای عیب‌یابی
+                debugBox.style.display = "block";
+                debugBox.innerText = "RAW DATA: " + wrapper.contents;
+
                 const data = JSON.parse(wrapper.contents);
-
-                // ۳. استخراج و تبدیل دیتا بر اساس ساختار آلکوری
-                // تغییر فیلدها به customer_name و invoice_items
-                slots[index] = {
-                    customer: data.customer_name || "مشتری ناشناس",
-                    items: (data.invoice_items || []).map(it => ({
-                        name: it.product_name,
-                        qty: parseInt(it.quantity) || 0
-                    }))
-                };
-
-                // ۴. آپدیت ظاهر اسلات
-                const slotEl = document.getElementById(`s${index}`);
-                slotEl.classList.add('filled');
-                slotEl.querySelector('span').innerText = slots[index].customer.substring(0, 10);
                 
-                document.getElementById('sendBtn').style.display = 'block';
-                status.innerText = "✅ فاکتور " + slots[index].customer + " اضافه شد.";
-                
-                render();
+                // ۳. بررسی ساختار دیتا (مغز متفکر)
+                let customer = data.customer_name || data.customer?.name || "نامعلوم";
+                let items = data.invoice_items || data.items || [];
+
+                if (items.length === 0) {
+                    status.innerHTML = "❌ کالاها پیدا نشدند! <br> دیتای خام را در پایین چک کنید.";
+                } else {
+                    status.style.color = "#22c55e";
+                    status.innerText = `✅ موفقیت! مشتری: ${customer} | تعداد کالا: ${items.length}`;
+                    renderSimple(customer, items);
+                }
 
             } catch (err) {
+                status.style.color = "#ef4444";
+                status.innerText = "❌ خطا در هر یک از مراحل: " + err.message;
                 console.error(err);
-                status.style.color = "var(--error)";
-                status.innerText = "❌ خطا: کد خوانده نشد یا دیتای آلکوری دریافت نشد.";
             }
         }
 
-        function render() {
+        function renderSimple(customer, items) {
             const out = document.getElementById('output');
-            out.innerHTML = '';
-            let groups = {};
-
-            // تجمیع کالاها: اگر کالایی در چند فاکتور بود، زیر هم نمایش داده شود
-            slots.forEach(s => {
-                if (!s) return;
-                s.items.forEach(it => {
-                    if (!groups[it.name]) groups[it.name] = [];
-                    groups[it.name].push({ customer: s.customer, qty: it.qty });
-                });
+            let h = `<div style="background:#1e293b; padding:15px; border-radius:15px; margin-top:15px; text-align:right;">`;
+            h += `<b>👤 مشتری: ${customer}</b><hr style="border-color:#334155">`;
+            items.forEach(it => {
+                h += `<div style="display:flex; justify-content:space-between; margin:5px 0;">
+                        <span>${it.product_name || it.name}</span>
+                        <b style="color:#22c55e">${it.quantity || it.qty}</b>
+                      </div>`;
             });
-
-            // ساخت کارت‌های محصول
-            Object.keys(groups).sort().forEach(productName => {
-                let cardHtml = `<div class="product-card"><div class="product-title">📦 ${productName}</div>`;
-                
-                groups[productName].forEach(entry => {
-                    cardHtml += `
-                        <div class="item-row">
-                            <span>👤 ${entry.customer}</span>
-                            <span class="qty-badge">${entry.qty}</span>
-                        </div>`;
-                });
-                
-                out.innerHTML += cardHtml + `</div>`;
-            });
-        }
-
-        async function sendToGoogle() {
-            const piker = document.getElementById('pikerName').value;
-            if(!piker) return alert("ابتدا نام خود را بنویسید");
-
-            const btn = document.getElementById('sendBtn');
-            btn.disabled = true;
-            btn.innerText = "⏳ در حال ارسال...";
-
-            // محاسبه آمارهای کلی
-            let totalQty = 0;
-            let orderCount = slots.filter(s => s !== null).length;
-            slots.forEach(s => {
-                if(s) s.items.forEach(it => totalQty += it.qty);
-            });
-
-            try {
-                await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    body: JSON.stringify({
-                        pikerName: piker,
-                        totalItems: totalQty,
-                        orderCount: orderCount,
-                        timestamp: new Date().toLocaleString('fa-IR')
-                    })
-                });
-                
-                alert("✅ اطلاعات با موفقیت در گوگل شیت ثبت شد.");
-                location.reload();
-            } catch (e) {
-                alert("❌ خطا در ثبت نهایی. دوباره تلاش کنید.");
-                btn.disabled = false;
-                btn.innerText = "📊 ثبت نهایی در گوگل شیت";
-            }
+            out.innerHTML = h + `</div>`;
         }
     </script>
 </body>
