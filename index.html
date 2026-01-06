@@ -3,31 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Piker Pro V10</title>
+    <title>Piker Pro V11 - Fixed</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
         body { font-family: Tahoma; background: #0f172a; color: white; text-align: center; padding: 10px; direction: rtl; }
-        #status { background: #000; padding: 10px; border-radius: 8px; color: #38bdf8; font-size: 11px; margin-bottom: 15px; border: 1px solid #334155; }
-        .slot-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-        .slot { background: #1e293b; border: 2px dashed #475569; padding: 15px 5px; border-radius: 12px; cursor: pointer; }
-        .slot.filled { border-color: #22c55e; background: #064e3b; }
-        .card { background: #1e293b; padding: 15px; border-radius: 12px; margin-top: 10px; text-align: right; border-right: 5px solid #38bdf8; }
-        .item { display: flex; justify-content: space-between; border-top: 1px solid #334155; padding: 5px 0; margin-top: 5px; }
+        #status { background: #111827; padding: 12px; border-radius: 10px; color: #38bdf8; font-size: 12px; margin-bottom: 15px; border: 1px solid #1e293b; min-height: 40px; display: flex; align-items: center; justify-content: center; }
+        .slot-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+        .slot { background: #1e293b; border: 2px dashed #475569; padding: 20px 5px; border-radius: 12px; cursor: pointer; transition: 0.2s; }
+        .slot.filled { border-color: #22c55e; background: #064e3b; border-style: solid; }
+        .slot b { font-size: 20px; display: block; }
+        .slot span { font-size: 10px; color: #94a3b8; display: block; margin-top: 5px; white-space: nowrap; overflow: hidden; }
+        .card { background: #1e293b; padding: 15px; border-radius: 15px; margin-top: 12px; text-align: right; border-right: 6px solid #38bdf8; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3); }
+        .item { display: flex; justify-content: space-between; border-top: 1px solid #334155; padding: 8px 0; margin-top: 5px; }
         input[type="file"] { display: none; }
+        .reset-btn { background: #450a0a; border-color: #ef4444 !important; }
     </style>
 </head>
 <body>
 
-    <h3 style="color:#38bdf8">🚀 پنل نهایی تجمیع</h3>
-    <div id="status">آماده برای اسکن فاکتور ۱</div>
+    <h3 style="color:#38bdf8; margin-bottom:5px;">🚀 پنل تجمیع هوشمند</h3>
+    <div id="status">آماده اسکن فاکتور جدید...</div>
 
     <div class="slot-container">
         <label class="slot" id="s0"><b>۱</b><span>اسکن</span><input type="file" accept="image/*" capture="environment" onchange="work(0, this)"></label>
         <label class="slot" id="s1"><b>۲</b><span>اسکن</span><input type="file" accept="image/*" capture="environment" onchange="work(1, this)"></label>
         <label class="slot" id="s2"><b>۳</b><span>اسکن</span><input type="file" accept="image/*" capture="environment" onchange="work(2, this)"></label>
-        <label class="slot" id="s3"><b>۴</b><span>اسکن</span><input type="file" accept="image/*" capture="environment" onchange="process(3, this)"></label>
+        <label class="slot" id="s3"><b>۴</b><span>اسکن</span><input type="file" accept="image/*" capture="environment" onchange="work(3, this)"></label>
         <label class="slot" id="s4"><b>۵</b><span>اسکن</span><input type="file" accept="image/*" capture="environment" onchange="work(4, this)"></label>
-        <div class="slot" onclick="location.reload()" style="background:#450a0a"><b>✖</b></div>
+        <div class="slot reset-btn" onclick="location.reload()"><b>✖</b><span>ریست</span></div>
     </div>
 
     <div id="output"></div>
@@ -39,53 +42,60 @@
         async function work(index, input) {
             if (!input.files[0]) return;
             const status = document.getElementById('status');
-            status.innerText = "⏳ در حال استخراج محتوا...";
+            status.style.color = "#38bdf8";
+            status.innerText = `⏳ اسلات ${index+1}: در حال پردازش...`;
 
             try {
+                // ۱. استخراج متن از عکس
                 const url = await engine.scanFile(input.files[0], true);
-                const pUrl = "https://api.allorigins.win/get?url=" + encodeURIComponent(url);
+                
+                // ۲. دریافت دیتا با کد آنتی-کش جهت جلوگیری از تکرار فاکتور قبلی
+                const pUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}&t=${Date.now()}`;
                 const res = await fetch(pUrl);
                 const json = await res.json();
                 const d = JSON.parse(json.contents);
 
-                // --- منطق هوشمند برای پیدا کردن فیلدها ---
-                // جستجو برای نام مشتری در فیلدهای مختلف
-                let cName = d.customer_name || d.name || d.customer?.name || "مشتری " + (index + 1);
+                // ۳. استخراج هوشمند (بر اساس موفقیت فاکتور کاکتوس)
+                let cName = d.customer_name || d.name || "مشتری " + (index + 1);
+                let rawList = d.invoice_items || d.items || [];
                 
-                // جستجو برای لیست کالاها (هر چیزی که آرایه باشد)
-                let rawList = d.invoice_items || d.items || d.products || [];
-                
-                // اگر باز هم پیدا نشد، اولین آرایه موجود در JSON را بردار
+                // پیدا کردن لیست کالاها اگر در فیلد استاندارد نبود
                 if (rawList.length === 0) {
-                    for (let key in d) {
-                        if (Array.isArray(d[key])) { rawList = d[key]; break; }
-                    }
+                    for (let key in d) { if (Array.isArray(d[key])) { rawList = d[key]; break; } }
                 }
 
+                // ۴. ذخیره در حافظه اسلات مربوطه
                 dataStore[index] = {
                     name: cName,
                     list: rawList.map(it => ({
-                        p: it.product_name || it.name || it.title || "کالای نامشخص",
-                        q: it.quantity || it.qty || it.count || 0
+                        p: it.product_name || it.name || "کالای نامشخص",
+                        q: it.quantity || it.qty || 0
                     }))
                 };
 
-                document.getElementById(`s${index}`).classList.add('filled');
-                document.getElementById(`s${index}`).querySelector('span').innerText = cName.substring(0, 10);
+                // ۵. بروزرسانی UI
+                const slotEl = document.getElementById(`s${index}`);
+                slotEl.classList.add('filled');
+                slotEl.querySelector('span').innerText = cName.substring(0, 10);
                 
-                status.innerText = "✅ فاکتور " + cName + " با موفقیت لود شد.";
-                show();
+                status.style.color = "#22c55e";
+                status.innerText = `✅ فاکتور "${cName}" با موفقیت اضافه شد.`;
+                
+                render();
 
             } catch (e) {
-                status.innerText = "❌ خطا در پردازش: " + e.message;
+                console.error(e);
+                status.style.color = "#ef4444";
+                status.innerText = "❌ خطا: کد خوانده نشد یا اینترنت ضعیف است.";
             }
         }
 
-        function show() {
+        function render() {
             const out = document.getElementById('output');
             out.innerHTML = '';
             let groups = {};
 
+            // تجمیع کالاها از تمام اسلات‌های پر شده
             dataStore.forEach(f => {
                 if (!f) return;
                 f.list.forEach(i => {
@@ -94,6 +104,7 @@
                 });
             });
 
+            // ساخت کارت‌های نمایش
             Object.keys(groups).sort().forEach(p => {
                 let h = `<div class="card"><b>📦 ${p}</b>`;
                 groups[p].forEach(row => {
