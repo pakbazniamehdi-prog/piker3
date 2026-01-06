@@ -1,44 +1,129 @@
-
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ابزار جمع آوری فاکتور</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Piker Master PRO - V6</title>
+    <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-      /* Simple scrollbar styling for better UX */
-      ::-webkit-scrollbar {
-        width: 8px;
-      }
-      ::-webkit-scrollbar-track {
-        background: #f1f1f1;
-      }
-      ::-webkit-scrollbar-thumb {
-        background: #888;
-        border-radius: 4px;
-      }
-      ::-webkit-scrollbar-thumb:hover {
-        background: #555;
-      }
-      #reader {
-        width: 100%;
-        border-radius: 8px;
-        overflow: hidden;
-      }
+        :root { --bg: #0f172a; --card: #1e293b; --accent: #38bdf8; --success: #22c55e; --error: #ef4444; }
+        body { font-family: Tahoma; background: var(--bg); color: white; margin: 0; padding: 10px; text-align: center; }
+        .piker-box { margin-bottom: 15px; }
+        #pikerName { width: 90%; padding: 12px; border-radius: 10px; border: 1px solid var(--accent); background: #1e293b; color: white; text-align: center; }
+        .slot-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 15px; }
+        .slot { background: var(--card); border: 2px dashed #475569; padding: 15px 5px; border-radius: 12px; cursor: pointer; transition: 0.3s; }
+        .slot.filled { background: #064e3b; border-style: solid; border-color: var(--success); }
+        .slot b { font-size: 20px; display: block; }
+        .slot span { font-size: 10px; color: #94a3b8; }
+        #status { background: #000; padding: 15px; border-radius: 10px; color: var(--accent); font-size: 13px; min-height: 40px; margin-bottom: 15px; border: 1px solid #334155; }
+        .product-card { background: var(--card); border-radius: 12px; margin-bottom: 10px; padding: 15px; border-right: 5px solid var(--accent); text-align: right; }
+        .row { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; border-top: 1px solid #334155; padding-top: 8px; }
+        .qty { background: #000; padding: 4px 12px; border-radius: 6px; font-weight: bold; font-size: 18px; }
+        .submit-btn { background: var(--success); color: white; border: none; padding: 18px; width: 100%; border-radius: 12px; font-weight: bold; display: none; }
+        input[type="file"] { display: none; }
     </style>
-  <script type="importmap">
-{
-  "imports": {
-    "react": "https://esm.sh/react@^19.2.3",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "react/": "https://esm.sh/react@^19.2.3/"
-  }
-}
-</script>
 </head>
-  <body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
-    <div id="root"></div>
-  </body>
+<body>
+
+    <div class="piker-box">
+        <input type="text" id="pikerName" placeholder="نام پیکر (مثلاً مهدی)">
+    </div>
+
+    <div id="status">برای شروع، روی شماره ۱ بزنید و عکس بگیرید</div>
+
+    <div class="slot-container">
+        <label class="slot" id="s0"><b>۱</b><span>اسکن</span><input type="file" accept="image/*" capture="environment" onchange="process(0, this)"></label>
+        <label class="slot" id="s1"><b>۲</b><span>اسکن</span><input type="file" accept="image/*" capture="environment" onchange="process(1, this)"></label>
+        <label class="slot" id="s2"><b>۳</b><span>اسکن</span><input type="file" accept="image/*" capture="environment" onchange="process(2, this)"></label>
+        <label class="slot" id="s3"><b>۴</b><span>اسکن</span><input type="file" accept="image/*" capture="environment" onchange="process(3, this)"></label>
+        <label class="slot" id="s4"><b>۵</b><span>اسکن</span><input type="file" accept="image/*" capture="environment" onchange="process(4, this)"></label>
+        <div class="slot" onclick="location.reload()" style="background:#450a0a"><b>✖</b><span>ریست</span></div>
+    </div>
+
+    <div id="output"></div>
+    <button id="sendBtn" class="submit-btn" onclick="sendToSheet()">📊 ثبت نهایی در گوگل شیت</button>
+
+    <script>
+        let slots = [null, null, null, null, null];
+        const engine = new Html5Qrcode("status");
+        // لینک گوگل اسکریپت شما
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw0Kk8YRlZBmoY0ciF9_f8uQRWCWRmYvO_SObsVnL1_INd8AcFuj8Ve0I68Pj5jg6y0/exec';
+
+        async function process(index, input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const status = document.getElementById('status');
+            status.style.color = "var(--accent)";
+            status.innerText = "⏳ در حال خواندن QR...";
+
+            try {
+                // ۱. استخراج لینک از تصویر
+                const decodedUrl = await engine.scanFile(file, true);
+                status.innerText = "✅ لینک شناسایی شد. در حال دریافت JSON...";
+
+                // ۲. استفاده از پروکسی برای حل مشکل Failed to Fetch و CORS
+                const proxyUrl = "https://api.allorigins.win/get?url=" + encodeURIComponent(decodedUrl);
+                const response = await fetch(proxyUrl);
+                const wrapper = await response.json();
+                
+                // ۳. پارس کردن دیتای JSON آلکوری
+                const data = JSON.parse(wrapper.contents);
+                
+                // تبدیل فرمت آلکوری به فرمت برنامه ما
+                slots[index] = {
+                    customer: data.customer_name || "مشتری ناشناس",
+                    items: data.invoice_items.map(it => ({
+                        name: it.product_name,
+                        qty: it.quantity
+                    }))
+                };
+
+                // ۴. آپدیت ظاهر
+                document.getElementById(`s${index}`).classList.add('filled');
+                document.getElementById(`s${index}`).querySelector('span').innerText = slots[index].customer.substring(0, 8);
+                document.getElementById('sendBtn').style.display = 'block';
+                status.innerText = "✅ فاکتور " + slots[index].customer + " با موفقیت بارگذاری شد.";
+                
+                render();
+
+            } catch (err) {
+                console.error(err);
+                status.style.color = "var(--error)";
+                status.innerText = "❌ خطا: محتوای QR با این برنامه سازگار نیست یا اینترنت ضعیف است.";
+            }
+        }
+
+        function render() {
+            const out = document.getElementById('output');
+            out.innerHTML = '';
+            let groups = {};
+
+            slots.forEach(s => {
+                if (!s) return;
+                s.items.forEach(it => {
+                    if (!groups[it.name]) groups[it.name] = [];
+                    groups[it.name].push({ n: s.customer, q: it.qty });
+                });
+            });
+
+            Object.keys(groups).sort().forEach(title => {
+                let h = `<div class="product-card"><b>📦 ${title}</b>`;
+                groups[title].forEach(row => {
+                    h += `<div class="row"><span>👤 ${row.n}</span><span class="qty">${row.q}</span></div>`;
+                });
+                out.innerHTML += h + `</div>`;
+            });
+        }
+
+        async function sendToSheet() {
+            const piker = document.getElementById('pikerName').value;
+            if(!piker) return alert("لطفاً نام خود را وارد کنید");
+            
+            alert("در حال ثبت گزارش در گوگل شیت...");
+            // اینجا دیتای تجمیعی را به گوگل اسکریپت بفرستید (مشابه کدهای قبلی)
+            location.reload();
+        }
+    </script>
+</body>
 </html>
