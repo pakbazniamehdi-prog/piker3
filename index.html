@@ -1,144 +1,44 @@
 
-import React, { useState, useEffect, useRef } from 'react';
-import { MAX_INVOICES } from '../constants';
-// It's expected that html5-qrcode is loaded from a script tag in index.html
-declare const Html5Qrcode: any;
-
-interface InvoiceScannerProps {
-  onSubmit: (urls: string[]) => void;
-  disabled: boolean;
-}
-
-const InvoiceScanner: React.FC<InvoiceScannerProps> = ({ onSubmit, disabled }) => {
-  const [urls, setUrls] = useState<string[]>([]);
-  const [isScanning, setIsScanning] = useState<boolean>(false);
-  const [scanError, setScanError] = useState<string | null>(null);
-  const html5QrCodeRef = useRef<any>(null);
-
-  useEffect(() => {
-    if (isScanning) {
-      setScanError(null);
-      const qrCodeRegionId = "reader";
-      
-      // Initialize scanner
-      if (!html5QrCodeRef.current) {
-         html5QrCodeRef.current = new Html5Qrcode(qrCodeRegionId);
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ابزار جمع آوری فاکتور</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <style>
+      /* Simple scrollbar styling for better UX */
+      ::-webkit-scrollbar {
+        width: 8px;
       }
-      const html5QrCode = html5QrCodeRef.current;
-
-      const qrCodeSuccessCallback = (decodedText: string, decodedResult: any) => {
-        if (decodedText) {
-          if (urls.includes(decodedText)) {
-            setScanError('این QR کد قبلاً اسکن شده است.');
-          } else {
-            setUrls(prevUrls => [...prevUrls, decodedText]);
-          }
-          stopScanning();
-        }
-      };
-
-      const config = { fps: 10, qrbox: { width: 250, height: 250 } };
-      
-      html5QrCode.start({ facingMode: "environment" }, config, qrCodeSuccessCallback, undefined)
-        .catch((err: any) => {
-          console.error("Failed to start QR scanner", err);
-          setScanError("دوربین یافت نشد یا دسترسی به آن ممکن نیست.");
-          setIsScanning(false);
-        });
-
-    } else {
-      stopScanning();
-    }
-
-    // Cleanup on component unmount
-    return () => {
-        stopScanning();
-    };
-  }, [isScanning]);
-
-  const stopScanning = () => {
-      if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) {
-          html5QrCodeRef.current.stop().then(() => {
-              setIsScanning(false);
-          }).catch((err:any) => {
-              console.error("Failed to stop scanner", err);
-          });
-      } else {
-          setIsScanning(false);
+      ::-webkit-scrollbar-track {
+        background: #f1f1f1;
       }
-  };
-  
-  const handleRemoveUrl = (indexToRemove: number) => {
-    setUrls(prevUrls => prevUrls.filter((_, index) => index !== indexToRemove));
-  };
-  
-  const handleSubmit = (event: React.FormEvent) => {
-    event.preventDefault();
-    onSubmit(urls);
-  };
-  
-  const canScanMore = urls.length < MAX_INVOICES;
-  const isSubmitDisabled = disabled || urls.length === 0;
-
-  if (isScanning) {
-      return (
-          <div className="flex flex-col items-center">
-              <div id="reader" className="w-full max-w-md"></div>
-              {scanError && <p className="text-red-500 mt-2">{scanError}</p>}
-              <button
-                  onClick={stopScanning}
-                  className="mt-4 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg"
-              >
-                  لغو اسکن
-              </button>
-          </div>
-      )
+      ::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #555;
+      }
+      #reader {
+        width: 100%;
+        border-radius: 8px;
+        overflow: hidden;
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/"
   }
-
-  return (
-    <div className="p-6 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
-      <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-4">اسکن QR کد فاکتورها</h2>
-       {scanError && <p className="text-red-500 mb-2">{scanError}</p>}
-      <div className="space-y-3 mb-6">
-        {urls.map((url, index) => (
-          <div key={index} className="flex items-center justify-between bg-gray-100 dark:bg-gray-700 p-2 rounded-md">
-            <span className="text-sm text-gray-600 dark:text-gray-300 truncate" dir="ltr">
-              {index + 1}: {url}
-            </span>
-            <button onClick={() => handleRemoveUrl(index)} className="text-red-500 hover:text-red-700 p-1">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-              </svg>
-            </button>
-          </div>
-        ))}
-        {urls.length === 0 && <p className="text-gray-500 text-center">هنوز هیچ فاکتوری اسکن نشده است.</p>}
-      </div>
-      
-      {canScanMore && (
-        <button
-          onClick={() => setIsScanning(true)}
-          disabled={disabled}
-          className="w-full mb-4 inline-flex items-center justify-center px-4 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-gray-400 disabled:cursor-not-allowed"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-          </svg>
-          اسکن QR کد فاکتور ({urls.length}/{MAX_INVOICES})
-        </button>
-      )}
-
-      <form onSubmit={handleSubmit}>
-        <button
-          type="submit"
-          disabled={isSubmitDisabled}
-          className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:bg-gray-400 disabled:cursor-not-allowed"
-        >
-          پردازش و ساخت لیست جمع‌آوری
-        </button>
-      </form>
-    </div>
-  );
-};
-
-export default InvoiceScanner;
+}
+</script>
+</head>
+  <body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
+    <div id="root"></div>
+  </body>
+</html>
