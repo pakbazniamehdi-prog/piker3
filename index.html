@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Piker System V8 - Stable</title>
+    <title>Piker Master Final</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
         :root { --bg: #0f172a; --card: #1e293b; --accent: #38bdf8; --success: #22c55e; --text: #f1f5f9; }
@@ -11,7 +11,7 @@
         .header { background: #1e293b; padding: 15px; border-radius: 12px; text-align: center; font-weight: bold; border-bottom: 2px solid var(--accent); margin-bottom: 15px; }
         #pikerName { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #334155; background: var(--card); color: white; text-align: center; box-sizing: border-box; margin-bottom: 15px; }
         .slot-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 15px; }
-        .slot { background: var(--card); border: 2px dashed #475569; padding: 15px 5px; border-radius: 12px; text-align: center; cursor: pointer; position: relative; }
+        .slot { background: var(--card); border: 2px dashed #475569; padding: 15px 5px; border-radius: 12px; text-align: center; cursor: pointer; }
         .slot.filled { background: #064e3b; border-style: solid; border-color: var(--success); }
         .slot b { font-size: 20px; display: block; }
         .slot span { font-size: 10px; color: #94a3b8; display: block; margin-top: 5px; overflow: hidden; white-space: nowrap; }
@@ -19,107 +19,106 @@
         .product-card { background: var(--card); border-radius: 15px; margin-bottom: 12px; padding: 15px; border-right: 6px solid var(--accent); text-align: right; }
         .item-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-top: 1px solid #475569; }
         .qty-badge { background: #000; color: var(--success); padding: 4px 10px; border-radius: 8px; font-weight: bold; font-size: 16px; }
-        .submit-btn { background: var(--success); color: white; border: none; padding: 18px; width: 100%; border-radius: 12px; font-weight: bold; display: none; }
+        .submit-btn { background: var(--success); color: white; border: none; padding: 18px; width: 100%; border-radius: 12px; font-weight: bold; display: none; margin-top: 15px; }
         input[type="file"] { display: none; }
     </style>
 </head>
 <body>
 
-    <div class="header">⚡ پنل تجمیع فاکتور آلکوری</div>
-    <input type="text" id="pikerName" placeholder="نام خود را وارد کنید">
-    <div id="status">آماده اسکن؛ فاکتور اول را اسکن کنید</div>
+    <div class="header">📦 پنل تجمیع کالای آلکوری</div>
+    <input type="text" id="pikerName" placeholder="نام پیکر را وارد کنید">
+    <div id="status">آماده اسکن فاکتور جدید</div>
 
     <div class="slot-container">
-        <label class="slot" id="s0"><b>۱</b><span>خالی</span><input type="file" accept="image/*" capture="environment" onchange="runScanner(0, this)"></label>
-        <label class="slot" id="s1"><b>۲</b><span>خالی</span><input type="file" accept="image/*" capture="environment" onchange="runScanner(1, this)"></label>
-        <label class="slot" id="s2"><b>۳</b><span>خالی</span><input type="file" accept="image/*" capture="environment" onchange="runScanner(2, this)"></label>
-        <label class="slot" id="s3"><b>۴</b><span>خالی</span><input type="file" accept="image/*" capture="environment" onchange="runScanner(3, this)"></label>
-        <label class="slot" id="s4"><b>۵</b><span>خالی</span><input type="file" accept="image/*" capture="environment" onchange="runScanner(4, this)"></label>
+        <label class="slot" id="s0"><b>۱</b><span>اسکن</span><input type="file" accept="image/*" capture="environment" onchange="processInvoice(0, this)"></label>
+        <label class="slot" id="s1"><b>۲</b><span>اسکن</span><input type="file" accept="image/*" capture="environment" onchange="processInvoice(1, this)"></label>
+        <label class="slot" id="s2"><b>۳</b><span>اسکن</span><input type="file" accept="image/*" capture="environment" onchange="processInvoice(2, this)"></label>
+        <label class="slot" id="s3"><b>۴</b><span>اسکن</span><input type="file" accept="image/*" capture="environment" onchange="processInvoice(3, this)"></label>
+        <label class="slot" id="s4"><b>۵</b><span>اسکن</span><input type="file" accept="image/*" capture="environment" onchange="processInvoice(4, this)"></label>
         <div class="slot" onclick="location.reload()" style="background:#450a0a"><b>✖</b><span>ریست</span></div>
     </div>
 
     <div id="output"></div>
-    <button id="sendBtn" class="submit-btn" onclick="uploadData()">📊 ثبت نهایی در گوگل شیت</button>
+    <button id="sendBtn" class="submit-btn" onclick="finalSubmit()">📊 ثبت در گوگل شیت</button>
 
     <script>
-        let allData = [null, null, null, null, null];
+        let allInvoices = [null, null, null, null, null];
         const scanner = new Html5Qrcode("status");
 
-        async function runScanner(index, input) {
+        async function processInvoice(index, input) {
             const file = input.files[0];
             if (!file) return;
 
             const status = document.getElementById('status');
-            status.innerText = `⏳ اسلات ${index + 1}: در حال خواندن عکس...`;
+            status.style.color = "#38bdf8";
+            status.innerText = "⏳ در حال پردازش تصویر...";
 
             try {
-                // ۱. استخراج لینک
+                // ۱. استخراج لینک از QR
                 const url = await scanner.scanFile(file, true);
-                status.innerText = `🔗 لینک یافت شد. دریافت دیتای فاکتور...`;
-
-                // ۲. دریافت از پروکسی (اضافه کردن تگ زمان برای جلوگیری از کش شدن)
+                
+                // ۲. دریافت دیتا از طریق پروکسی AllOrigins (برای دور زدن CORS)
                 const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}&_=${new Date().getTime()}`;
                 const response = await fetch(proxyUrl);
                 const wrapper = await response.json();
-                
-                // ۳. باز کردن بسته AllOrigins
                 const data = JSON.parse(wrapper.contents);
 
-                // ۴. ذخیره در حافظه بر اساس اسلات
-                allData[index] = {
-                    customer: data.customer_name || "ناشناس",
-                    items: data.invoice_items.map(it => ({
-                        title: it.product_name,
-                        qty: it.quantity
-                    }))
-                };
+                // ۳. تحلیل ساختار JSON آلکوری
+                const customer = data.customer_name || "ناشناس";
+                const items = data.invoice_items || [];
 
-                // ۵. بروزرسانی ظاهر
+                if (items.length === 0) throw new Error("لیست کالاها خالی است");
+
+                // ۴. ذخیره سازی
+                allInvoices[index] = { customer, items };
+
+                // ۵. آپدیت UI
                 const slotEl = document.getElementById(`s${index}`);
                 slotEl.classList.add('filled');
-                slotEl.querySelector('span').innerText = allData[index].customer;
+                slotEl.querySelector('span').innerText = customer.substring(0, 10);
                 
-                status.innerText = `✅ فاکتور ${allData[index].customer} با موفقیت لود شد.`;
+                status.style.color = "#22c55e";
+                status.innerText = `✅ فاکتور ${customer} اضافه شد.`;
                 document.getElementById('sendBtn').style.display = 'block';
-                
-                render();
+
+                renderLists();
 
             } catch (err) {
                 console.error(err);
-                status.innerText = `❌ خطا در اسلات ${index + 1}: دوباره تلاش کنید.`;
-                alert("خطا: یا QR واضح نیست یا اینترنت پروکسی قطع است.");
+                status.style.color = "#ef4444";
+                status.innerText = "❌ خطا در دریافت دیتا (QR ناخوانا یا قطعی پروکسی)";
             }
         }
 
-        function render() {
+        function renderLists() {
             const out = document.getElementById('output');
             out.innerHTML = '';
-            let grouped = {};
+            let groupedProducts = {};
 
-            // تجمیع کالاها
-            allData.forEach(entry => {
-                if (!entry) return;
-                entry.items.forEach(it => {
-                    if (!grouped[it.title]) grouped[it.title] = [];
-                    grouped[it.title].push({ name: entry.customer, q: it.qty });
+            // تجمیع کالاها بر اساس نام
+            allInvoices.forEach(inv => {
+                if (!inv) return;
+                inv.items.forEach(it => {
+                    const pName = it.product_name || it.name;
+                    if (!groupedProducts[pName]) groupedProducts[pName] = [];
+                    groupedProducts[pName].push({ c: inv.customer, q: it.quantity || it.qty });
                 });
             });
 
-            // ساخت لیست برای پیکر
-            Object.keys(grouped).sort().forEach(title => {
-                let card = `<div class="product-card"><b>📦 ${title}</b>`;
-                grouped[title].forEach(row => {
-                    card += `<div class="item-row"><span>👤 ${row.name}</span><span class="qty-badge">${row.q}</span></div>`;
+            // نمایش کارت‌های محصول
+            Object.keys(groupedProducts).sort().forEach(pName => {
+                let card = `<div class="product-card"><div style="font-weight:bold; margin-bottom:8px;">📦 ${pName}</div>`;
+                groupedProducts[pName].forEach(row => {
+                    card += `<div class="item-row"><span>👤 ${row.c}</span><span class="qty-badge">${row.q}</span></div>`;
                 });
                 out.innerHTML += card + `</div>`;
             });
         }
 
-        function uploadData() {
-            const piker = document.getElementById('pikerName').value;
-            if(!piker) return alert("نام پیکر را وارد کنید");
-            alert("در حال ارسال اطلاعات به گوگل شیت...");
-            // اینجا دیتای نهایی ارسال می‌شود
+        function finalSubmit() {
+            const name = document.getElementById('pikerName').value;
+            if(!name) return alert("ابتدا نام خود را بنویسید");
+            alert("ارسال شد (این بخش نیاز به اتصال SCRIPT_URL دارد)");
             location.reload();
         }
     </script>
